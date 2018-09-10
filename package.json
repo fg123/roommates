@@ -1,30 +1,30 @@
 {
-  "name": "roommates",
-  "version": "1.0.0",
-  "description": "Suite of applications for roommate management.",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/fg123/roommates.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/fg123/roommates/issues"
-  },
-  "homepage": "https://github.com/fg123/roommates#readme",
-  "dependencies": {
-    "express": "^4.16.3",
-    "express-session": "^1.15.6",
-    "express-subdomain": "^1.0.5",
-    "uuid": "^3.3.2"
-  },
-  "devDependencies": {
-    "nodemon": "^1.18.4"
-  }
+    "name": "roommates",
+    "version": "1.0.0",
+    "description": "Suite of applications for roommate management.",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/fg123/roommates.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/fg123/roommates/issues"
+    },
+    "homepage": "https://github.com/fg123/roommates#readme",
+    "dependencies": {
+        "express": "^4.16.3",
+        "express-session": "^1.15.6",
+        "uuid": "^3.3.2"
+    },
+    "devDependencies": {
+        "eslint": "^5.5.0",
+        "nodemon": "^1.18.4"
+    }
 }
