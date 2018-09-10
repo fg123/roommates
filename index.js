@@ -38,5 +38,8 @@ app.get('/logout', function(req, res) {
 });
 
 app.use('/api', require('./api/index'));
+
+app.use('/static', express.static('./static'));
+
 app.listen(port);
 console.log('Serving root on port ' + port);
