@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title>Login</title>
+	<meta name="google-signin-client_id" content="115168994184-ib3eggt9l4saeaf20bcn6sh5piourkut.apps.googleusercontent.com">
+	<script src="https://apis.google.com/js/platform.js" async defer></script>
+	<script type="text/javascript">
+		function onSignIn(googleUser) {
+			var id_token = googleUser.getAuthResponse().id_token;
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', '/api/login');
+			xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			xhr.onload = function () {
+				window.location.href = '/';
+			};
+			xhr.send('idtoken=' + id_token);
+		}
+	</script>
+</head>
+
+<body>
+	<div class="g-signin2" data-onsuccess="onSignIn"></div>
+</body>
+
+</html>

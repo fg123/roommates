@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title>Login</title>
+	<meta name="google-signin-client_id" content="115168994184-ib3eggt9l4saeaf20bcn6sh5piourkut.apps.googleusercontent.com">
+	<script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
+	<script type="text/javascript">
+		function init() {
+			gapi.load('auth2', function () {
+				gapi.auth2.init().then(function () {
+					var auth2 = gapi.auth2.getAuthInstance();
+					auth2.signOut().then(function () {
+						window.location.href = "/";
+					});
+				})
+			});
+		}
+	</script>
+</head>
+
+<body>
+	Logging out...
+</body>
+
+</html>
