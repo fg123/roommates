@@ -7,6 +7,11 @@ const express = require('express');
 const session = require('express-session');
 const uuidv4 = require('uuid/v4');
 const app = express();
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 const port = process.env.PORT || 3000;
 
 app.use(
@@ -29,6 +34,7 @@ app.get('/logout', function(req, res) {
 });
 
 app.use('/api', require('./api/index'));
+app.use('/api/staging', require('./api/staging'));
 
 app.use('/static', express.static('./static'));
 

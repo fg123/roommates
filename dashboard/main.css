@@ -20,3 +20,7 @@ div.float-card {
     margin: 1rem;
     position: relative;
 }
+
+a:hover {
+    cursor: pointer;
+}
