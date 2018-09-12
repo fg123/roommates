@@ -1,12 +1,9 @@
 /*
  * Roommates API: https://docs.felixguo.me/architecture/roommates/core.md
  */
-// 115168994184-ib3eggt9l4saeaf20bcn6sh5piourkut.apps.googleusercontent.com
-// bLTGUVchID7iscQyrPkwqtft
 
 const auth = require('../auth.js');
 const router = require('express').Router();
-const session = require('express-session');
 
 router.get('/auth', function(req, res) {
     res.send('ok');
