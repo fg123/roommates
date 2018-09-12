@@ -10,4 +10,3 @@ function bindButtonToDialog(buttonSelector, dialogSelector) {
 }
 
 bindButtonToDialog('.dialog-open-create-group', '.create-group-dialog');
-bindButtonToDialog('.dialog-open-join-group', '.join-group-dialog');
