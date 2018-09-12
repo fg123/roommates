@@ -24,3 +24,7 @@ div.float-card {
 a:hover {
     cursor: pointer;
 }
+
+dialog {
+    width: 350px !important;
+}

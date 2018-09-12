@@ -54,28 +54,18 @@
 					{{ group.name }}</a>
 				<hr>
 				<a class="mdl-navigation__link dialog-open-create-group">Create a Group</a>
-				<a class="mdl-navigation__link dialog-open-join-group">Join a Group</a>
 			</nav>
 		</div>
 		<main class="mdl-layout__content">
-			<dialog class="mdl-dialog create-group-dialog" style="width: 50%">
+			<dialog class="mdl-dialog create-group-dialog">
 				<h4 class="mdl-dialog__title">Create a Group</h4>
 				<div class="mdl-dialog__content">
-					<p>
-						Allowing us to collect data will let us get you the information you want faster.
-					</p>
-				</div>
-				<div class="mdl-dialog__actions">
-					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--colored">Create</button>
-					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect close">Cancel</button>
-				</div>
-			</dialog>
-			<dialog class="mdl-dialog join-group-dialog" style="width: 50%">
-				<h4 class="mdl-dialog__title">Join a Group</h4>
-				<div class="mdl-dialog__content">
-					<p>
-						Allowing us to collect data will let us get you the information you want faster.
-					</p>
+					<form action="#" method="post">
+						<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+							<input class="mdl-textfield__input" type="text" id="group-name">
+							<label class="mdl-textfield__label" for="group-name">Group Name</label>
+						</div>
+					</form>
 				</div>
 				<div class="mdl-dialog__actions">
 					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--colored">Create</button>
