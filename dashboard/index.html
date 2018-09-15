@@ -52,7 +52,7 @@
 				<hr>
 				<a class="mdl-navigation__link" v-on:click="active_group = index" v-for="(group, index) in groups" v-bind:class="{ 'mdl-navigation__link--current': active_group == index }">
 					{{ group.name }}</a>
-				<hr>
+				<hr v-if="groups.length != 0">
 				<a class="mdl-navigation__link dialog-open-create-group">Create a Group</a>
 			</nav>
 		</div>

@@ -7,13 +7,16 @@ const app = new Vue({
             name: 'John Doe',
             email: 'hello@example.com',
             groups: [],
-            active_group: -1,
+            active_group: undefined,
             getTitle() {
                 if (this.active_group >= this.groups.length) {
                     this.active_group = this.groups.length - 1;
                 }
-                if (this.active_group < 0) {
+                if (this.active_group === undefined) {
                     return 'Loading...';
+                }
+                if (this.active_group < 0) {
+                    return 'No Group Selected!';
                 }
                 return this.groups[this.active_group].name;
             }
@@ -29,7 +32,11 @@ const app = new Vue({
         axios.get('/api/staging/groups').then(response => {
             response = response.data;
             this.groups = response;
-            this.active_group = 0;
+            if (this.groups.length > 0) {
+                this.active_group = 0;
+            } else {
+                this.active_group = -1;
+            }
         });
     }
 });
