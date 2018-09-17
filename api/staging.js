@@ -7,11 +7,23 @@ const auth = require('../auth.js');
 const router = require('express').Router();
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(clientId);
-var url = 'mongodb://localhost:27017';
-var MongoClient = require('mongodb').MongoClient;
 const uuidv4 = require('uuid/v4');
-
 const bodyParser = require('body-parser');
+
+var MongoClient = require('mongodb').MongoClient;
+var assert = require('assert');
+
+// This is a global variable we'll use for handing the MongoDB client
+var mongodb;
+
+// Connection URL
+var url = 'mongodb://localhost:27017/roommate';
+
+// Create the db connection
+MongoClient.connect(url, { useNewUrlParser: true },function(err, db) {  
+    assert.equal(null, err);
+    mongodb=db.db();
+});
 
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
@@ -42,41 +54,33 @@ router.post('/login', function(req, res) {
                 // taken from database
                 created_time: Date.now(),
                 id: payload.sub,
-                group_id: []
+                group_ids: []
             };
             res.send('ok');
 
             console.log(req.session.user);
 
             var currentUserID = req.session.user.id;
-
-            MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+            
+            mongodb.collection('user').find({ id: currentUserID }).count(function(err, result) {
                 if (err) throw err;
-                
-                const dbase = db.db('roommate');
-                console.log('Connected to ' + dbase.databaseName + ' database!');
-
-                dbase.collection('user').find({ id: currentUserID }).count(function(err, result) {
-                    if (err) throw err;
-                    if (result === 0){
-                        dbase.collection('user').insertOne(req.session.user);
-                        console.log(currentUserID);
-                    } else {
-                        console.log(currentUserID + ' is already in the database.');
-                        dbase.collection('user').updateOne(
+                if (result === 0){
+                    mongodb.collection('user').insertOne(req.session.user);
+                    console.log(currentUserID);
+                } else {
+                    console.log(currentUserID + ' is already in the database.');
+                    mongodb.collection('user').updateOne(
+                        {
+                            id: currentUserID
+                        },{
+                            $set:
                             {
-                                id: currentUserID
-                            },{
-                                $set:
-                                {
-                                    'name': payload.name,
-                                    'email': payload.email,
-                                    'picture': payload.picture,
-                                }
-                            });
-                    }
-                    db.close();
-                });
+                                'name': payload.name,
+                                'email': payload.email,
+                                'picture': payload.picture,
+                            }
+                        });
+                }
             });
         })
         .catch(err => {
@@ -97,47 +101,30 @@ router.get('/user', function(req, res) {
 router.get('/user/:userId', function(req, res) {
     var userID = req.params.userId;
     res.send('ok');
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
-
-        var currentUserID = req.session.user.id;
-
+    
+    var currentUserID = req.session.user.id;
+    
+    mongodb.collection('groups').find({ members: [ currentUserID, userID ] }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
-        
-        dbase.collection('groups').find({ members: [ currentUserID, userID ] }).toArray(function(err, result){
-            if (err) throw err;
-            if (result.length > 0){
-                dbase.collection('user').find({ id: userID }).toArray(function(e, r){
-                    if (e) throw e;
-                    res.send(r[0]);
-                    db.close();
-                });
-            }else{
-                res.status(403).send('You are not authorized to get this user\'s info/this user may not exist.');
-            }
-        });
-        db.close();
+        if (result.length > 0){
+            mongodb.collection('user').find({ id: userID }).toArray(function(e, r){
+                if (e) throw e;
+                res.send(r[0]);
+            });
+        }else{
+            res.status(403).send('You are not authorized to get this user\'s info/this user may not exist.');
+        }
     });
 });
 
 router.get('/groups', function(req, res) {
     // Should be returned in reverse chronological order
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+    var currentUserID = req.session.user.id;
+
+    mongodb.collection('groups').find({ $or: [ { members: currentUserID }, 
+        { pending: currentUserID} ] }).sort({ pending: -1, created_time: -1 }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
-
-        var currentUserID = req.session.user.id;
-
-
-        dbase.collection('groups').find({ $or: [ { members: currentUserID }, 
-            { pending: currentUserID} ] }).sort({ pending: -1, created_time: -1 }).toArray(function(err, result){
-            if (err) throw err;
-            res.send(result);
-        });
-
-        db.close();
+        res.send(result);
     });
 });
 
@@ -155,28 +142,21 @@ router.post('/groups', function(req, res){
         pending: []
     };
 
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+    mongodb.collection('groups').insertOne(newGroup);
+
+    mongodb.collection('user').find({ id: currentUserID }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
-        dbase.collection('groups').insertOne(newGroup);
-
-        dbase.collection('user').find({ id: currentUserID }).toArray(function(err, result){
-            if (err) throw err;
-            result = result[0];
-            result.group_id.push(newGroup.id);
-            dbase.collection('user').updateOne(
-                {
-                    id: currentUserID
-                },{
-                    $set:
-                        {
-                            'group_id': result.group_id
-                        }
-                });
-        });
-
-        db.close();
+        result = result[0];
+        result.group_ids.push(newGroup.id);
+        mongodb.collection('user').updateOne(
+            {
+                id: currentUserID
+            },{
+                $set:
+                    {
+                        'group_ids': result.group_ids
+                    }
+            });
     });
 
     res.send(newGroup);
@@ -184,141 +164,115 @@ router.post('/groups', function(req, res){
 
 router.post('/group/:groupId/join', function(req, res) {
     var currentUserID = req.session.user.id;
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+    var groupID = req.params.groupId;
+
+    mongodb.collection('groups').find({ id: groupID }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
-
-        var groupID = req.params.groupId;
-
-
-        dbase.collection('groups').find({ id: groupID }).toArray(function(err, result){
-            if (err) throw err;
-            result = result[0];
-            var index = result.pending.indexOf(currentUserID);
-            if (index > -1){
-                var newPending = result.pending.splice(index, 1);
-                result.members.push(currentUserID);
-                if (index < 1) newPending = [];
-                dbase.collection('groups').updateOne(
+        result = result[0];
+        var index = result.pending.indexOf(currentUserID);
+        if (index > -1){
+            var newPending = result.pending.splice(index, 1);
+            result.members.push(currentUserID);
+            if (index < 1) newPending = [];
+            mongodb.collection('groups').updateOne(
+                {
+                    id: groupID
+                },{
+                    $set:
                     {
-                        id: groupID
+                        'members': result.members,
+                        'pending': newPending
+                    }
+                });
+
+            res.status(200).send('ok');
+
+            mongodb.collection('user').find({ id: currentUserID }).toArray(function(err, r){
+                if (err) throw err;
+                r = r[0];
+                r.group_ids.push(groupID);
+                mongodb.collection('user').updateOne(
+                    {
+                        id: currentUserID
                     },{
                         $set:
                         {
-                            'members': result.members,
-                            'pending': newPending
+                            'group_ids': r.group_ids
                         }
                     });
-                res.status(200).send('ok');
-                dbase.collection('user').find({ id: currentUserID }).toArray(function(err, r){
-                    if (err) throw err;
-                    r = r[0];
-                    r.group_id.push(groupID);
-                    dbase.collection('user').updateOne(
-                        {
-                            id: currentUserID
-                        },{
-                            $set:
-                            {
-                                'group_id': r.group_id
-                            }
-                        });
-                });
-            }else{
-                res.status(403).send('No invite recieved for this group.');
-            }
-            db.close();
-        });
+            });
+        }else{
+            res.status(403).send('No invite recieved for this group.');
+        }
     });
 });
 
 router.post('/group/:groupId/decline', function(req, res) {
     var currentUserID = req.session.user.id;
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+    var groupID = req.params.groupId;
+
+    mongodb.collection('groups').find({ id: groupID }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
-
-        var groupID = req.params.groupId;
-
-
-        dbase.collection('groups').find({ id: groupID }).toArray(function(err, result){
-            if (err) throw err;
-            result = result[0];
-            var index = result.pending.indexOf(currentUserID);
-            if (index > -1){
-                var newPending = result.pending.splice(index, 1);
-                if (index < 1) newPending = [];
-                dbase.collection('groups').updateOne(
+        result = result[0];
+        var index = result.pending.indexOf(currentUserID);
+        if (index > -1){
+            var newPending = result.pending.splice(index, 1);
+            if (index < 1) newPending = [];
+            mongodb.collection('groups').updateOne(
+                {
+                    id: groupID
+                },{
+                    $set:
                     {
-                        id: groupID
-                    },{
-                        $set:
-                        {
-                            'pending': newPending
-                        }
-                    });
-                res.status(200).send('ok');
-            }else{
-                res.status(403).send('Cannot decline invitation for this group.');
-            }
-            db.close();
-        });
+                        'pending': newPending
+                    }
+                });
+            res.status(200).send('ok');
+        }else{
+            res.status(403).send('Cannot decline invitation for this group.');
+        }
     });
 });
 /*
 
 router.post('/group/:groupId/add', function(req, res){
     var groupID = req.params.groupId;
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+    var email = req.body.email;
+
+    mongodb.collection('group').find({ id: groupID }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
+        if (result.length > 0){
 
-        var email = req.body.email;
-
-        dbase.collection('group').find({ id: groupID }).toArray(function(err, result){
-            if (err) throw err;
-            if (result.length > 0){
-
-            }else{
-                res.status(403).send('This group does not exist');
-            }
-        });
+        }else{
+            res.status(403).send('This group does not exist');
+        }
     });
 });
 
 router.post('/group/:groupId/leave', function(req, res){
     var groupID = req.params.groupId;
-    MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
+    
+    mongodb.collection('groups').find({ id: groupID }).toArray(function(err, result){
         if (err) throw err;
-        
-        const dbase = db.db('roommate');
-
-        dbase.collection('groups').find({ id: groupID }).toArray(function(err, result){
-            if (err) throw err;
-            if (result.length < 1) res.status(404).send('You are not part of this group');
-            result = result[0];
-            var index = result.members.indexOf(currentUserID)
-            if (index > -1){
-                var newMembers = result.members.splice(index, 1);
-                if (index < 1) newMembers = [];
-                dbase.collection('groups').updateOne(
+        if (result.length < 1) res.status(404).send('You are not part of this group');
+        result = result[0];
+        var index = result.members.indexOf(currentUserID)
+        if (index > -1){
+            var newMembers = result.members.splice(index, 1);
+            if (index < 1) newMembers = [];
+            mongodb.collection('groups').updateOne(
+                {
+                    id: groupID
+                },{
+                    $set:
                     {
-                        id: groupID
-                    },{
-                        $set:
-                        {
-                            'members': newMembers
-                        }
-                });
-                res.status(200).send('ok');
-            }else{
-                res.status(403).send('This group does not exist');
-            }
-        });
-        db.close()
+                        'members': newMembers
+                    }
+            });
+            res.status(200).send('ok');
+        }else{
+            res.status(403).send('This group does not exist');
+        }
     });
 }); */
     
