@@ -11,9 +11,6 @@ var url = 'mongodb://localhost:27017';
 var MongoClient = require('mongodb').MongoClient;
 const uuidv4 = require('uuid/v4');
 
-
-//var currentUserID = 104339510018991244463; //for testing purposes
-
 const bodyParser = require('body-parser');
 
 router.use(bodyParser.json());
@@ -43,7 +40,7 @@ router.post('/login', function(req, res) {
                 picture: payload.picture,
 
                 // taken from database
-                created_time: new Date(),
+                created_time: Date.now(),
                 id: payload.sub,
                 group_id: []
             };
@@ -53,21 +50,19 @@ router.post('/login', function(req, res) {
 
             var currentUserID = req.session.user.id;
 
-            var query = { id: currentUserID };
-
             MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
                 if (err) throw err;
                 
                 const dbase = db.db('roommate');
-                console.log('Connected to '+dbase.databaseName+' database!');
+                console.log('Connected to ' + dbase.databaseName + ' database!');
 
-                dbase.collection('user').find(query).count(function(err, result) {
+                dbase.collection('user').find({ id: currentUserID }).count(function(err, result) {
                     if (err) throw err;
                     if (result === 0){
                         dbase.collection('user').insertOne(req.session.user);
                         console.log(currentUserID);
-                    }else{
-                        console.log(currentUserID+' is already in the database.');
+                    } else {
+                        console.log(currentUserID + ' is already in the database.');
                         dbase.collection('user').updateOne(
                             {
                                 id: currentUserID
@@ -77,7 +72,6 @@ router.post('/login', function(req, res) {
                                     'name': payload.name,
                                     'email': payload.email,
                                     'picture': payload.picture,
-                                    'group_id': result.group_id
                                 }
                             });
                     }
@@ -114,7 +108,7 @@ router.get('/user/:userId', function(req, res) {
         dbase.collection('groups').find({ members: [ currentUserID, userID ] }).toArray(function(err, result){
             if (err) throw err;
             if (result.length > 0){
-                dbase.collection('user').find({id: userID}).toArray(function(e, r){
+                dbase.collection('user').find({ id: userID }).toArray(function(e, r){
                     if (e) throw e;
                     res.send(r[0]);
                     db.close();
@@ -133,23 +127,6 @@ router.get('/groups', function(req, res) {
         if (err) throw err;
         
         const dbase = db.db('roommate');
-
-        /*
-        dbase.collection('groups').insertMany([
-            {
-                name: 'test 1',
-                id: 4,
-                created_time: new Date(),
-                members: null,
-                pending: currentUserID
-            },
-            {
-                name: 'test 2',
-                id: 5,
-                created_time: new Date(),
-                members: currentUserID,
-                pending: null  
-            }]); */
 
         var currentUserID = req.session.user.id;
 
@@ -212,7 +189,6 @@ router.post('/group/:groupId/join', function(req, res) {
         
         const dbase = db.db('roommate');
 
-        //var groupID = '81f9008d-b628-455a-91dd-341f3b6cc71d'; //for testing purposes
         var groupID = req.params.groupId;
 
 
@@ -264,7 +240,6 @@ router.post('/group/:groupId/decline', function(req, res) {
         
         const dbase = db.db('roommate');
 
-        // var groupID = '81f9008d-b628-455a-91dd-341f3b6cc71d'; //for testing purposes
         var groupID = req.params.groupId;
 
 
@@ -343,7 +318,7 @@ router.post('/group/:groupId/leave', function(req, res){
                 res.status(403).send('This group does not exist');
             }
         });
-        db.clse()
+        db.close()
     });
 }); */
     
