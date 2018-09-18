@@ -38,43 +38,41 @@ router.post('/login', function(req, res) {
     }
     verifyAndGetPayload()
         .then(payload => {
-            // Construct user. Since Google gives up to date info, we should
-            // update database with new info if it's different (always use Google)
-            // as source of truth.
-            req.session.user = {
-                name: payload.name,
-                email: payload.email,
-                picture: payload.picture,
-
-                // taken from database
-                created_time: Date.now(),
-                id: payload.sub,
-                group_ids: []
-            };
-            res.send('ok');
-
-            console.log(req.session.user);
-
-            const currentUserID = req.session.user.id;
-            
-            mongodb.collection('user').find({ id: currentUserID }).count(function(err, result) {
+            mongodb.collection('user').find({ id: payload.sub }).count(function(err, result) {
                 if (err) throw err;
-                if (result === 0){
-                    mongodb.collection('user').insertOne(req.session.user);
-                    console.log(currentUserID);
+                if (result === 0) {
+                    const newUser = {
+                        name: payload.name,
+                        email: payload.email,
+                        picture: payload.picture,
+                        created_time: Date.now(),
+                        id: payload.sub,
+                        group_ids: []
+                    };
+                    mongodb.collection('user').insertOne(newUser);
+                    req.session.user = newUser;
+                    console.log(req.session.user);
+                    res.send('ok');
                 } else {
-                    console.log(currentUserID + ' is already in the database.');
-                    mongodb.collection('user').updateOne(
+                    console.log(payload.sub + ' is already in the database.');
+                    mongodb.collection('user').findOneAndUpdate(
                         {
-                            id: currentUserID
+                            id: payload.sub
                         }, {
-                            $set:
-                            {
-                                'name': payload.name,
-                                'email': payload.email,
-                                'picture': payload.picture,
+                            $set: {
+                                name: payload.name,
+                                email: payload.email,
+                                picture: payload.picture
                             }
-                        });
+                        }, { 
+                            returnNewDocument: true 
+                        }, function(err, updatedUser) {
+                            if (err) throw err;
+                            req.session.user = updatedUser.value;
+                            console.log(updatedUser.value);
+                            res.send('ok');
+                        }
+                    );
                 }
             });
         })
@@ -114,7 +112,6 @@ router.get('/user/:userId', function(req, res) {
 
 router.get('/groups', function(req, res) {
     // Should be returned in reverse chronological order
-    
     const currentUserID = req.session.user.id;
 
     mongodb.collection('groups').find({ $or: [ { members: currentUserID }, 
@@ -160,6 +157,7 @@ router.post('/groups', function(req, res) {
 
 router.post('/group/:groupId/join', function(req, res) {
     const currentUserID = req.session.user.id;
+    
     const groupID = req.params.groupId;
 
     mongodb.collection('groups').find({ id: groupID }).toArray(function(err, result) {
