@@ -21,6 +21,9 @@ const GROUP_DB = 'groups';
 // Connection URL
 const url = 'mongodb://localhost:27017/roommate';
 
+const USER_DB = 'users';
+const GROUP_DB = 'groups';
+
 // Create the db connection
 MongoClient.connect(
     url,
@@ -46,6 +49,7 @@ router.post('/login', function(req, res) {
     }
     verifyAndGetPayload()
         .then(payload => {
+<<<<<<< HEAD
             mongodb
                 .collection(USER_DB)
                 .find({ id: payload.sub })
@@ -94,7 +98,6 @@ router.post('/login', function(req, res) {
                         res.status(500).send('Error in DB has occured.');
                     }
                 });
-        })
         .catch(err => {
             console.error(err);
             res.status(401).send('error verifying google token');
@@ -115,9 +118,13 @@ router.get('/user/:userId', function(req, res) {
    
     const currentUserID = req.session.user.id;
 
+    let query = [currentUserID, userID];
+
+    if (userID == currentUserID) query = [userID];
+
     mongodb
         .collection(GROUP_DB)
-        .find({ members: [currentUserID, userID] })
+        .find({ members: query })
         .toArray(function(err, result) {
             try {
                 if (result.length > 0) {
@@ -137,7 +144,6 @@ router.get('/user/:userId', function(req, res) {
                 res.status(500).send('Error in DB has occured.');
             }
         });
-});
 
 router.get('/groups', function(req, res) {
     // Should be returned in reverse chronological order
@@ -146,7 +152,7 @@ router.get('/groups', function(req, res) {
     mongodb
         .collection(GROUP_DB)
         .find({
-            $or: [{ members: currentUserID }, { pending: currentUserID }]
+            $or: [{ members: { $in: [currentUserID] }}, { pending: { $in: [currentUserID] }}]
         })
         .sort({ pending: -1, created_time: -1 })
         .toArray(function(err, result) {
@@ -156,7 +162,6 @@ router.get('/groups', function(req, res) {
                 res.status(500).send('Error in DB has occured.');
             }
         });
-});
 
 /* takes a group name, creates a unique ID and creates a group, joins user to group,
 then returns the new group */
@@ -199,7 +204,6 @@ router.post('/groups', function(req, res) {
                 res.status(500).send('Error in DB has occured.');
             }
         });
-});
 
 router.post('/group/:groupId/join', function(req, res) {
     const currentUserID = req.session.user.id;
@@ -256,7 +260,6 @@ router.post('/group/:groupId/join', function(req, res) {
                 res.status(500).send('Error in DB has occured.');
             }
         });
-});
 
 router.post('/group/:groupId/decline', function(req, res) {
     const currentUserID = req.session.user.id;
@@ -293,7 +296,6 @@ router.post('/group/:groupId/decline', function(req, res) {
                 res.status(500).send('Error in DB has occured.');
             }
         });
-});
 
 router.get('/group/:groupId', function(req, res) {
     const groupID = req.params.groupId;
