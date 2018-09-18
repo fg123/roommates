@@ -49,7 +49,6 @@ router.post('/login', function(req, res) {
     }
     verifyAndGetPayload()
         .then(payload => {
-<<<<<<< HEAD
             mongodb
                 .collection(USER_DB)
                 .find({ id: payload.sub })
