@@ -126,8 +126,8 @@ router.get('/groups', function(req, res) {
     // Should be returned in reverse chronological order
     const currentUserID = req.session.user.id;
 
-    mongodb.collection(GROUP_DB).find({ $or: [ { members: currentUserID }, 
-        { pending: currentUserID} ] }).sort({ pending: -1, created_time: -1 }).toArray(function(err, result) {
+    mongodb.collection(GROUP_DB).find({ $or: [ { members: { $in: [currentUserID] }}, 
+        { pending: { $in: [currentUserID] }} ] }).sort({ pending: -1, created_time: -1 }).toArray(function(err, result) {
         try {
             res.send(result);
         } catch (err) {
