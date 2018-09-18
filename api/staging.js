@@ -178,11 +178,13 @@ router.post('/groups', function(req, res) {
                     $set: {
                         group_ids: result.group_ids
                     }
+                },
+                function(err) {
+                    if (err) throw err;
+                    res.send(newGroup);
                 }
             );
         });
-
-    res.send(newGroup);
 });
 
 router.post('/group/:groupId/join', function(req, res) {
