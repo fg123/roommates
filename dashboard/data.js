@@ -29,14 +29,18 @@ const app = new Vue({
             this.name = response.name;
             this.email = response.email;
         });
-        axios.get('/api/staging/groups').then(response => {
-            response = response.data;
-            this.groups = response;
-            if (this.groups.length > 0) {
-                this.active_group = 0;
-            } else {
-                this.active_group = -1;
-            }
-        });
+        refreshGroups();
     }
 });
+
+function refreshGroups() {
+    axios.get('/api/staging/groups').then(response => {
+        response = response.data;
+        app.groups = response;
+        if (app.groups.length > 0) {
+            app.active_group = 0;
+        } else {
+            app.active_group = -1;
+        }
+    });
+}

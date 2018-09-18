@@ -62,13 +62,13 @@
 				<div class="mdl-dialog__content">
 					<form action="#" method="post">
 						<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-							<input class="mdl-textfield__input" type="text" id="group-name">
+							<input class="mdl-textfield__input" type="text" id="group-name" required>
 							<label class="mdl-textfield__label" for="group-name">Group Name</label>
 						</div>
 					</form>
 				</div>
 				<div class="mdl-dialog__actions">
-					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--colored">Create</button>
+					<button type="button" disabled id="create-group-submit-button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--colored">Create</button>
 					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect close">Cancel</button>
 				</div>
 			</dialog>
@@ -104,7 +104,7 @@
 	</div>
 	<script type="text/javascript" src="/static/material.min.js"></script>
 	<script type="text/javascript" src="/data.js"></script>
-	<script type="text/javascript" src="/dialog.js"></script>
+	<script type="text/javascript" src="/create-group-dialog.js"></script>
 </body>
 
 </html>
