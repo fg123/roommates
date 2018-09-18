@@ -1,14 +1,15 @@
 (function() {
-    var dialogOpenButton = document.querySelector('.dialog-open-create-group');
-    var dialog = document.querySelector('.create-group-dialog');
-    var field = document.querySelector('input#group-name');
-    var dialogSubmitButton = document.querySelector(
-        '#create-group-submit-button'
+    const dialogOpenButton = document.querySelector('.dialog-open-create-group');
+    const dialog = document.querySelector('.create-group-dialog');
+    const field = document.querySelector('input#group-name');
+    const dialogSubmitButton = document.querySelector(
+        '.create-group-submit-button'
     );
 
     dialogOpenButton.addEventListener('click', function() {
         dialog.showModal();
     });
+
     dialog.querySelector('.close').addEventListener('click', function() {
         dialog.close();
     });
