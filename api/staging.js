@@ -308,5 +308,5 @@ router.get('/group/:groupId', function(req, res) {
         }
     });
 });
-    
+
 module.exports = router;

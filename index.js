@@ -43,7 +43,7 @@ app.use('/', function(req, res, next) {
         res.redirect('/login');
     } else {
         req.url = `/dashboard/${req.url}`; 
-    } // req.url = `/dashboard/${req.url}`;
+    }
     next();
 });
 
