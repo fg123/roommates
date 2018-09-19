@@ -128,7 +128,7 @@ router.get('/user/:userId', function(req, res) {
                 res.send(r[0]);
             });
         } else {
-            res.status(403).send('You are not authorized to get this user\'s info/this user may not exist.');
+            res.status(404).send('This user does not exist.');
         }
     });
 });
@@ -241,7 +241,7 @@ router.post('/group/:groupId/join', function(req, res) {
                     });
             });
         } else {
-            res.status(403).send('No invite recieved for this group.');
+            res.status(404).send('This group does not exist.');
         }
     });
 });
@@ -278,7 +278,7 @@ router.post('/group/:groupId/decline', function(req, res) {
                 });
         } 
         else {
-            res.status(403).send('Cannot decline invitation for this group.');
+            res.status(404).send('Cannot decline invitation for this group.');
         }
     });
 });
@@ -304,9 +304,90 @@ router.get('/group/:groupId', function(req, res) {
                 res.send(result[0]);
             });
         } else {
-            res.status(404).send('You are not authorized to get this group\'s info/this group may not exist.');
+            res.status(404).send('This group does not exist.');
         }
     });
 });
+
+router.post('/group/:groupId/add', function(req, res) { // to test
+    const groupID = req.params.groupId;
+    const email = req.body.email;
+
+    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        if (result.length > 0) {
+            const wow = 1;
+        } else {
+            res.status(404).send('This group does not exist');
+        }   
+    });
+});
+
+router.post('/group/:groupId/leave', function(req, res) { // to test
+    const groupID = req.params.groupId;
+
+    //const currentUserID = req.session.user.id;
+    const currentUserID = '104339510018991244463';
+
+    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        if (result.length < 1) res.status(404).send('This group does not exist.');
+        result = result[0];
+        console.log(result.members);
+        let index = result.members.indexOf(currentUserID);
+        if (index > -1) {
+            let newMembers = result.members.splice(index, 1);
+            if (index < 1) newMembers = [];
+            mongodb.collection(GROUP_DB).updateOne(
+                {
+                    id: groupID
+                }, {
+                    $set:
+                    {
+                        'members': newMembers
+                    }
+                });
+            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(er, user) {
+                if (er) {
+                    handleUnexpectedError(er, res);
+                    return;
+                }
+                user = user[0];
+                index = user.group_ids.indexOf(groupID);
+                if (index > -1) {
+                    let newGroupIDs = user.group_ids.splice(index, 1);
+                    //if (index < 1) newGroupIDs = [];
+                    mongodb.collection(USER_DB).updateOne(
+                        {
+                            id: currentUserID
+                        }, {
+                            $set:
+                        {
+                            'group_ids': newGroupIDs
+                        }
+                        }, function(e, r) {
+                            if (e){
+                                handleUnexpectedError(e, res);
+                                return;
+                            }
+                            res.status(200).send('ok');
+                        });    
+                } else {
+                    res.status(404).send('The group you are trying to leaving does not exist');
+                } 
+            });
+            
+        } else {
+            res.status(403).send('This group does not exist');
+        }
+    });
+});
+
 
 module.exports = router;
