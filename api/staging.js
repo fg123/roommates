@@ -178,7 +178,7 @@ router.post('/groups', function(req, res) {
                     {
                         'group_ids': result.group_ids
                     }
-            }, function(err, unusedResult) {
+            }, function(err) {
                 if (err){
                     handleUnexpectedError(err, res);
                     return;
@@ -205,7 +205,7 @@ router.post('/group/:groupId/join', function(req, res) {
         if (index > -1){
             let newPending = result.pending.splice(index, 1);
             result.members.push(currentUserID);
-            if (index < 1) newPending = [];
+            if (result.pending.length < 1) newPending = [];
             mongodb.collection(GROUP_DB).updateOne(
                 {
                     id: groupID
@@ -232,7 +232,7 @@ router.post('/group/:groupId/join', function(req, res) {
                         {
                             'group_ids': user.group_ids
                         }
-                    }, function(err, unusedResult) {
+                    }, function(err) {
                         if (err){
                             handleUnexpectedError(err, res);
                             return;
@@ -260,7 +260,7 @@ router.post('/group/:groupId/decline', function(req, res) {
         const index = result.pending.indexOf(currentUserID);
         if (index > -1){
             let newPending = result.pending.splice(index, 1);
-            if (index < 1) newPending = [];
+            if (result.pending.length < 1) newPending = [];
             mongodb.collection(GROUP_DB).updateOne(
                 {
                     id: groupID
@@ -269,7 +269,7 @@ router.post('/group/:groupId/decline', function(req, res) {
                     {
                         'pending': newPending
                     }
-                }, function (err, unusedResult) {
+                }, function (err) {
                     if (err){
                         handleUnexpectedError(err, res);
                         return;
@@ -309,4 +309,62 @@ router.get('/group/:groupId', function(req, res) {
     });
 });
 
+
+router.post('/group/:groupId/leave', function(req, res) {
+    const groupID = req.params.groupId;
+
+    const currentUserID = req.session.user.id;
+    
+    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        if (result.length < 1) res.status(404).send('This group does not exist.');
+        result = result[0];
+        const groupIndex = result.members.indexOf(currentUserID);
+        if (groupIndex > -1) {
+            const newMembers = result.members.filter(item => item !== currentUserID);
+            mongodb.collection(GROUP_DB).updateOne(
+                {
+                    id: groupID
+                }, {
+                    $set:
+                    {
+                        'members': newMembers
+                    }
+                });
+            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+                if (err) {
+                    handleUnexpectedError(err, res);
+                    return;
+                }
+                user = user[0];
+                const userIndex = user.group_ids.indexOf(groupID);
+                if (userIndex > -1) {
+                    const newGroupIDs = user.group_ids.filter(item => item !== groupID);
+                    mongodb.collection(USER_DB).updateOne(
+                        {
+                            id: currentUserID
+                        }, {
+                            $set:
+                        {
+                            'group_ids': newGroupIDs
+                        }
+                        }, function(err) {
+                            if (err){
+                                handleUnexpectedError(err, res);
+                                return;
+                            }
+                            res.status(200).send('ok');
+                        });    
+                } else {
+                    res.status(404).send('The group you are trying to leaving does not exist');
+                } 
+            });
+        } else {
+            res.status(404).send('This group does not exist');
+        }
+    });
+});
 module.exports = router;
