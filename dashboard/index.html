@@ -20,6 +20,26 @@
 	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 	<!-- production version, optimized for size and speed -->
 	<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+
+	<!--
+		MDL Tabs Workaround:
+			MDL Tabs all load in before non-active tabs are hidden. This means
+		on page load, all tabs will flicker for a second before non-active tabs
+		are hidden. This workaround hides all tab panels on load so it does not
+		flicker.
+	-->
+	<style type="text/css" id="tab-load-style">
+		.mdl-layout__tab-panel {
+			display: none;
+		}
+	</style>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			setTimeout(function(e) {
+				$("#tab-load-style").remove();
+			}, 100);
+		});
+	</script>
 </head>
 
 <body>
