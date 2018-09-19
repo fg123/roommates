@@ -48,8 +48,8 @@ router.post('/login', function(req, res) {
         .then(payload => {
             mongodb.collection(USER_DB).find({ id: payload.sub }).count(function(err, result) {
                 if (err) {
-                	handleUnexpectedError(err, res);
-                	return;
+                    handleUnexpectedError(err, res);
+                    return;
                 }
                 if (result === 0) {
                     const newUser = {
@@ -77,10 +77,10 @@ router.post('/login', function(req, res) {
                             }
                         }, { 
                             returnNewDocument: true 
-                        }, function(err, updatedUser) {
-                            if (err) {
-                            	handleUnexpectedError(err, res);
-                            	return;
+                        }, function(e, updatedUser) {
+                            if (e) {
+                                handleUnexpectedError(e, res);
+                                return;
                             }
                             req.session.user = updatedUser.value;
                             console.log(updatedUser.value);
@@ -121,7 +121,10 @@ router.get('/user/:userId', function(req, res) {
         }
         if (result.length > 0){
             mongodb.collection(USER_DB).find({ id: userID }).toArray(function(e, r){
-                if (e) throw e;
+                if (e) {
+                    handleUnexpectedError(e, res);
+                    return;
+                }
                 res.send(r[0]);
             });
         } else {
@@ -175,10 +178,16 @@ router.post('/groups', function(req, res) {
                     {
                         'group_ids': result.group_ids
                     }
+            }, function(e, r) {
+                if (e){
+                    handleUnexpectedError(e, res);
+                    return;
+                }
+                res.send(newGroup);
             });
     });
 
-    res.send(newGroup);
+    
 });
 
 router.post('/group/:groupId/join', function(req, res) {
@@ -208,11 +217,9 @@ router.post('/group/:groupId/join', function(req, res) {
                     }
                 });
 
-            res.status(200).send('ok');
-
-            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, r) {
-                if (err) {
-                    handleUnexpectedError(err, res);
+            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(e, r) {
+                if (e) {
+                    handleUnexpectedError(e, res);
                     return;
                 }
                 r = r[0];
@@ -225,6 +232,12 @@ router.post('/group/:groupId/join', function(req, res) {
                         {
                             'group_ids': r.group_ids
                         }
+                    }, function(er, re) {
+                        if (er){
+                            handleUnexpectedError(er, res);
+                            return;
+                        }
+                        res.status(200).send('ok');
                     });
             });
         } else {
@@ -256,8 +269,13 @@ router.post('/group/:groupId/decline', function(req, res) {
                     {
                         'pending': newPending
                     }
+                }, function (e, r) {
+                    if (e){
+                        handleUnexpectedError(e, res);
+                        return;
+                    }
+                    res.status(200).send('ok');        
                 });
-            res.status(200).send('ok');
         } 
         else {
             res.status(403).send('Cannot decline invitation for this group.');
@@ -277,11 +295,15 @@ router.get('/group/:groupId', function(req, res) {
             return;
         }
         if (result.length > 0){
-            mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(err, innerResult) {
+            mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(e, innerResult) {
+                if (e) {
+                    handleUnexpectedError(e, res);
+                    return;
+                }
                 res.send(innerResult);
             });
         } else {
-            res.status(403).send('You are not authorized to get this group\'s info/this group may not exist.');
+            res.status(404).send('You are not authorized to get this group\'s info/this group may not exist.');
         }
     });
 });
