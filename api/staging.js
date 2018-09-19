@@ -47,7 +47,10 @@ router.post('/login', function(req, res) {
     verifyAndGetPayload()
         .then(payload => {
             mongodb.collection(USER_DB).find({ id: payload.sub }).count(function(err, result) {
-                if (err) handleUnexpectedError(err, res);
+                if (err) {
+                	handleUnexpectedError(err, res);
+                	return;
+                }
                 if (result === 0) {
                     const newUser = {
                         name: payload.name,
@@ -75,7 +78,10 @@ router.post('/login', function(req, res) {
                         }, { 
                             returnNewDocument: true 
                         }, function(err, updatedUser) {
-                            if (err) throw err;
+                            if (err) {
+                            	handleUnexpectedError(err, res);
+                            	return;
+                            }
                             req.session.user = updatedUser.value;
                             console.log(updatedUser.value);
                             res.send('ok');
@@ -109,7 +115,10 @@ router.get('/user/:userId', function(req, res) {
     if (userID == currentUserID) query = [userID];
     
     mongodb.collection(GROUP_DB).find({ members: query }).toArray(function(err, result) {
-        if (err) handleUnexpectedError(err, res);
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
         if (result.length > 0){
             mongodb.collection(USER_DB).find({ id: userID }).toArray(function(e, r){
                 if (e) throw e;
@@ -127,7 +136,10 @@ router.get('/groups', function(req, res) {
 
     mongodb.collection(GROUP_DB).find({ $or: [ { members: currentUserID }, 
         { pending: currentUserID} ] }).sort({ pending: -1, created_time: -1 }).toArray(function(err, result) {
-        if (err) handleUnexpectedError(err, res);
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
         res.send(result);
     });
 });
@@ -149,7 +161,10 @@ router.post('/groups', function(req, res) {
     mongodb.collection(GROUP_DB).insertOne(newGroup);
 
     mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, result) {
-        if (err) handleUnexpectedError(err, res);
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
         result = result[0];
         result.group_ids.push(newGroup.id);
         mongodb.collection(USER_DB).updateOne(
@@ -172,7 +187,10 @@ router.post('/group/:groupId/join', function(req, res) {
     const groupID = req.params.groupId;
 
     mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
-        if (err) handleUnexpectedError(err, res);
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
         result = result[0];
         const index = result.pending.indexOf(currentUserID);
         if (index > -1){
@@ -193,7 +211,10 @@ router.post('/group/:groupId/join', function(req, res) {
             res.status(200).send('ok');
 
             mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, r) {
-                if (err) throw err;
+                if (err) {
+                    handleUnexpectedError(err, res);
+                    return;
+                }
                 r = r[0];
                 r.group_ids.push(groupID);
                 mongodb.collection(USER_DB).updateOne(
@@ -218,7 +239,10 @@ router.post('/group/:groupId/decline', function(req, res) {
     const groupID = req.params.groupId;
 
     mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
-        if (err) handleUnexpectedError(err, res);
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
         result = result[0];
         const index = result.pending.indexOf(currentUserID);
         if (index > -1){
@@ -244,13 +268,21 @@ router.post('/group/:groupId/decline', function(req, res) {
 router.get('/group/:groupId', function(req, res) {
     const groupID = req.params.groupId;
     
-    const currentUserID = req.session.user.id;
-    
+    //const currentUserID = req.session.user.id;
+    const currentUserID = '104339510018991244463';
+
     mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
         console.log(result);
-        if (err) handleUnexpectedError(err, res);
-        if (result.length > 0) res.send(result[0]);
-        else {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        if (result.length > 0){
+            mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(err, innerResult) {
+                res.send(innerResult);
+            });
+            //res.send(result[0]);
+        } else {
             res.status(403).send('You are not authorized to get this group\'s info/this group may not exist.');
         }
     });
