@@ -77,9 +77,9 @@ router.post('/login', function(req, res) {
                             }
                         }, { 
                             returnNewDocument: true 
-                        }, function(e, updatedUser) {
-                            if (e) {
-                                handleUnexpectedError(e, res);
+                        }, function(err, updatedUser) {
+                            if (err) {
+                                handleUnexpectedError(err, res);
                                 return;
                             }
                             req.session.user = updatedUser.value;
@@ -120,12 +120,12 @@ router.get('/user/:userId', function(req, res) {
             return;
         }
         if (result.length > 0){
-            mongodb.collection(USER_DB).find({ id: userID }).toArray(function(e, r){
-                if (e) {
-                    handleUnexpectedError(e, res);
+            mongodb.collection(USER_DB).find({ id: userID }).toArray(function(err, user){
+                if (err) {
+                    handleUnexpectedError(err, res);
                     return;
                 }
-                res.send(r[0]);
+                res.send(user[0]);
             });
         } else {
             res.status(404).send('This user does not exist.');
@@ -178,9 +178,9 @@ router.post('/groups', function(req, res) {
                     {
                         'group_ids': result.group_ids
                     }
-            }, function(e, r) {
-                if (e){
-                    handleUnexpectedError(e, res);
+            }, function(err, unusedResult) {
+                if (err){
+                    handleUnexpectedError(err, res);
                     return;
                 }
                 res.send(newGroup);
@@ -217,24 +217,24 @@ router.post('/group/:groupId/join', function(req, res) {
                     }
                 });
 
-            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(e, r) {
-                if (e) {
-                    handleUnexpectedError(e, res);
+            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+                if (err) {
+                    handleUnexpectedError(err, res);
                     return;
                 }
-                r = r[0];
-                r.group_ids.push(groupID);
+                user = user[0];
+                user.group_ids.push(groupID);
                 mongodb.collection(USER_DB).updateOne(
                     {
                         id: currentUserID
                     }, {
                         $set:
                         {
-                            'group_ids': r.group_ids
+                            'group_ids': user.group_ids
                         }
-                    }, function(er, re) {
-                        if (er){
-                            handleUnexpectedError(er, res);
+                    }, function(err, unusedResult) {
+                        if (err){
+                            handleUnexpectedError(err, res);
                             return;
                         }
                         res.status(200).send('ok');
@@ -269,9 +269,9 @@ router.post('/group/:groupId/decline', function(req, res) {
                     {
                         'pending': newPending
                     }
-                }, function (e, r) {
-                    if (e){
-                        handleUnexpectedError(e, res);
+                }, function (err, unusedResult) {
+                    if (err){
+                        handleUnexpectedError(err, res);
                         return;
                     }
                     res.status(200).send('ok');        
@@ -295,9 +295,9 @@ router.get('/group/:groupId', function(req, res) {
             return;
         }
         if (result.length > 0){
-            mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(e, innerResult) {
-                if (e) {
-                    handleUnexpectedError(e, res);
+            mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(err, innerResult) {
+                if (err) {
+                    handleUnexpectedError(err, res);
                     return;
                 }
                 result[0].members = innerResult;
@@ -308,86 +308,5 @@ router.get('/group/:groupId', function(req, res) {
         }
     });
 });
-
-router.post('/group/:groupId/add', function(req, res) { // to test
-    const groupID = req.params.groupId;
-    const email = req.body.email;
-
-    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
-        if (err) {
-            handleUnexpectedError(err, res);
-            return;
-        }
-        if (result.length > 0) {
-            const wow = 1;
-        } else {
-            res.status(404).send('This group does not exist');
-        }   
-    });
-});
-
-router.post('/group/:groupId/leave', function(req, res) { // to test
-    const groupID = req.params.groupId;
-
-    //const currentUserID = req.session.user.id;
-    const currentUserID = '104339510018991244463';
-
-    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
-        if (err) {
-            handleUnexpectedError(err, res);
-            return;
-        }
-        if (result.length < 1) res.status(404).send('This group does not exist.');
-        result = result[0];
-        console.log(result.members);
-        let index = result.members.indexOf(currentUserID);
-        if (index > -1) {
-            let newMembers = result.members.splice(index, 1);
-            if (index < 1) newMembers = [];
-            mongodb.collection(GROUP_DB).updateOne(
-                {
-                    id: groupID
-                }, {
-                    $set:
-                    {
-                        'members': newMembers
-                    }
-                });
-            mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(er, user) {
-                if (er) {
-                    handleUnexpectedError(er, res);
-                    return;
-                }
-                user = user[0];
-                index = user.group_ids.indexOf(groupID);
-                if (index > -1) {
-                    let newGroupIDs = user.group_ids.splice(index, 1);
-                    //if (index < 1) newGroupIDs = [];
-                    mongodb.collection(USER_DB).updateOne(
-                        {
-                            id: currentUserID
-                        }, {
-                            $set:
-                        {
-                            'group_ids': newGroupIDs
-                        }
-                        }, function(e, r) {
-                            if (e){
-                                handleUnexpectedError(e, res);
-                                return;
-                            }
-                            res.status(200).send('ok');
-                        });    
-                } else {
-                    res.status(404).send('The group you are trying to leaving does not exist');
-                } 
-            });
-            
-        } else {
-            res.status(403).send('This group does not exist');
-        }
-    });
-});
-
 
 module.exports = router;
