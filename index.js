@@ -42,8 +42,8 @@ app.use('/', function(req, res, next) {
     if (!auth.isLoggedIn(req)) {
         res.redirect('/login');
     } else {
-        req.url = `/dashboard/${req.url}`;
-    }
+        req.url = `/dashboard/${req.url}`; 
+    } // req.url = `/dashboard/${req.url}`;
     next();
 });
 

@@ -300,7 +300,8 @@ router.get('/group/:groupId', function(req, res) {
                     handleUnexpectedError(e, res);
                     return;
                 }
-                res.send(innerResult);
+                result[0].members = innerResult;
+                res.send(result[0]);
             });
         } else {
             res.status(404).send('You are not authorized to get this group\'s info/this group may not exist.');
