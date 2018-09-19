@@ -15,9 +15,6 @@ const assert = require('assert');
 // This is a global variable we'll use for handing the MongoDB client
 let mongodb;
 
-const USER_DB = 'users';
-const GROUP_DB = 'groups';
-
 // Connection URL
 const url = 'mongodb://localhost:27017/roommate';
 
@@ -97,6 +94,7 @@ router.post('/login', function(req, res) {
                         res.status(500).send('Error in DB has occured.');
                     }
                 });
+            })
         .catch(err => {
             console.error(err);
             res.status(401).send('error verifying google token');
@@ -161,6 +159,7 @@ router.get('/groups', function(req, res) {
                 res.status(500).send('Error in DB has occured.');
             }
         });
+});
 
 /* takes a group name, creates a unique ID and creates a group, joins user to group,
 then returns the new group */
