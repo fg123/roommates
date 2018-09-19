@@ -268,9 +268,8 @@ router.post('/group/:groupId/decline', function(req, res) {
 router.get('/group/:groupId', function(req, res) {
     const groupID = req.params.groupId;
     
-    //const currentUserID = req.session.user.id;
-    const currentUserID = '104339510018991244463';
-
+    const currentUserID = req.session.user.id;
+    
     mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
         console.log(result);
         if (err) {
@@ -281,7 +280,6 @@ router.get('/group/:groupId', function(req, res) {
             mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(err, innerResult) {
                 res.send(innerResult);
             });
-            //res.send(result[0]);
         } else {
             res.status(403).send('You are not authorized to get this group\'s info/this group may not exist.');
         }
