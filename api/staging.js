@@ -21,9 +21,11 @@ const USER_DB = 'users';
 const GROUP_DB = 'groups';
 
 // Create the db connection
-MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {  
+MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
     assert.equal(null, err);
     mongodb = db.db();
+    mongodb.collection(USER_DB).ensureIndex('id');
+    mongodb.collection(GROUP_DB).ensureIndex('id');
 });
 
 function handleUnexpectedError(err, res) {
