@@ -60,6 +60,7 @@
 				<a href="#tab-expenses" class="mdl-layout__tab">Expenses</a>
 				<a href="#tab-groceries" class="mdl-layout__tab">Groceries</a>
 				<a href="#tab-chores" class="mdl-layout__tab">Chores</a>
+				<a href="#tab-manage" class="mdl-layout__tab">Manage Group</a>
 			</div>
 		</header>
 		<div class="mdl-layout__drawer">
@@ -88,10 +89,22 @@
 					</form>
 				</div>
 				<div class="mdl-dialog__actions">
-					<button type="button" disabled id="create-group-submit-button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--colored">Create</button>
+					<button type="button" disabled class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--colored create-group-submit-button">Create</button>
 					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect close">Cancel</button>
 				</div>
 			</dialog>
+
+			<dialog class="mdl-dialog leave-group-confirm-dialog">
+				<h4 class="mdl-dialog__title">Leave group?</h4>
+				<div class="mdl-dialog__content">
+					This action cannot be undone!
+				</div>
+				<div class="mdl-dialog__actions">
+					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--accent confirm-leave-button">Leave</button>
+					<button type="button" class="mdl-button mdl-js-button mdl-js-ripple-effect close">Cancel</button>
+				</div>
+			</dialog>
+
 			<section class="mdl-layout__tab-panel is-active" id="tab-overview">
 				<div class="page-content">
 					<!-- Randomly filled in color. -->
@@ -120,11 +133,56 @@
 					<!-- Your content goes here -->
 				</div>
 			</section>
+			<section class="mdl-layout__tab-panel" id="tab-manage">
+				<div class="page-content">
+					<h6>Members</h6>
+					<ul class="group-members mdl-list">
+						<li class="mdl-list__item mdl-list__item--two-line" v-for="member in members">
+							<span class="mdl-list__item-primary-content">
+								<img class="mdl-list__item-avatar" :src="member.picture" />
+								<span>{{ member.name }}<span v-if="member.email == email"> (You)</span></span>
+								<span class="mdl-list__item-sub-title">{{ member.email }}</span>
+							</span>
+						</li>
+					</ul>
+					<h6>Pending Invitations</h6>
+					<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+						<tbody>
+							<tr v-for="invite in pending_invitations">
+								<td class="mdl-data-table__cell--non-numeric">{{ invite }}</td>
+								<td>
+									<button class="mdl-button mdl-js-button mdl-button--icon">
+										<i class="material-icons">cancel</i>
+									</button>
+								</td>
+							</tr>
+							<tr>
+								<td class="mdl-data-table__cell--non-numeric">
+									<div class="mdl-textfield mdl-js-textfield" style="margin: -20px 0;">
+										<input class="mdl-textfield__input" type="email" id="username" />
+										<label class="mdl-textfield__label" for="username">Invite by email...</label>
+									</div>
+								</td>
+								<td>
+									<button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+										Invite
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<h6>Leave</h6>
+					<button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent leave-group-button">
+						Leave This Group
+					</button>
+				</div>
+			</section>
 		</main>
 	</div>
 	<script type="text/javascript" src="/static/material.min.js"></script>
 	<script type="text/javascript" src="/data.js"></script>
 	<script type="text/javascript" src="/create-group-dialog.js"></script>
+	<script type="text/javascript" src="/leave-group-confirm-dialog.js"></script>
 </body>
 
 </html>
