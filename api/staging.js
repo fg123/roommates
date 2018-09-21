@@ -448,12 +448,12 @@ router.post('/group/:groupId/invite', function(req, res) {
         return;
     }
 
-    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).count(function(err, count) {
+    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
         if (err) {
             handleUnexpectedError(err, res);
             return;
         }
-        if (count < 1) {
+        if (group.length < 1) {
             res.status(403).send('You do not have authorization to make this request.');
             return;
         }
@@ -488,32 +488,21 @@ router.post('/group/:groupId/invite', function(req, res) {
                         handleUnexpectedError(err, res);
                         return;
                     }
-                    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+                    group[0].pending.push(email);
+
+                    mongodb.collection(GROUP_DB).updateOne({
+                        id: groupID
+                    }, {
+                        $set:
+                            {
+                                'pending': group[0].pending
+                            }
+                    }, function(err) {
                         if (err) {
                             handleUnexpectedError(err, res);
                             return;
                         }
-                        if (group.length <= 0) {
-                            res.status(404).send('This group does not exist');
-                            return;
-                        }
-
-                        group[0].pending.push(email);
-
-                        mongodb.collection(GROUP_DB).updateOne({
-                            id: groupID
-                        }, {
-                            $set:
-                            {
-                                'pending': group[0].pending
-                            }
-                        }, function(err) {
-                            if (err) {
-                                handleUnexpectedError(err, res);
-                                return;
-                            }
-                            res.status(200).send('ok');
-                        });
+                        res.status(200).send('ok');
                     });
                 });
             } else {
@@ -525,32 +514,22 @@ router.post('/group/:groupId/invite', function(req, res) {
                         handleUnexpectedError(err, res);
                         return;
                     }
-                    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+                
+                    group[0].pending.push(email);
+
+                    mongodb.collection(GROUP_DB).updateOne({
+                        id: groupID
+                    }, {
+                        $set:
+                        {
+                            'pending': group[0].pending
+                        }
+                    }, function(err) {
                         if (err) {
                             handleUnexpectedError(err, res);
                             return;
                         }
-                        if (group.length <= 0) {
-                            res.status(404).send('This group does not exist');
-                            return;
-                        }
-
-                        group[0].pending.push(email);
-
-                        mongodb.collection(GROUP_DB).updateOne({
-                            id: groupID
-                        }, {
-                            $set:
-                            {
-                                'pending': group[0].pending
-                            }
-                        }, function(err) {
-                            if (err) {
-                                handleUnexpectedError(err, res);
-                                return;
-                            }
-                            res.status(200).send('ok');
-                        });
+                        res.status(200).send('ok');
                     });
                 });
             }
@@ -563,12 +542,12 @@ router.delete('/group/:groupId/invite', function(req, res) {
     const email = req.body.email;
     const currentUserID = req.session.user.id;
 
-    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).count(function(err, count) {
+    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
         if (err) {
             handleUnexpectedError(err, res);
             return;
         }
-        if (count < 1) {
+        if (group.length < 1) {
             res.status(403).send('You do not have authorization to make this request.');
             return;
         }
@@ -596,34 +575,22 @@ router.delete('/group/:groupId/invite', function(req, res) {
                     handleUnexpectedError(err, res);
                     return;
                 }
+                const newPending = group[0].pending.filter(item => item !== email);  
 
-                mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+                mongodb.collection(GROUP_DB).updateOne({
+                    id: groupID
+                }, {
+                    $set:
+                    {
+                        'pending': newPending
+                    }
+                }, function(err) {
                     if (err) {
                         handleUnexpectedError(err, res);
                         return;
                     }
-                    if (group.length <= 0) {
-                        res.status(404).send('This group does not exist');
-                        return;
-                    }
-
-                    const newPending = group[0].pending.filter(item => item !== email);  
-
-                    mongodb.collection(GROUP_DB).updateOne({
-                        id: groupID
-                    }, {
-                        $set:
-                        {
-                            'pending': newPending
-                        }
-                    }, function(err) {
-                        if (err) {
-                            handleUnexpectedError(err, res);
-                            return;
-                        }
-                        res.status(200).send('ok');
-                    });
-                });                        
+                    res.status(200).send('ok');
+                });                       
             });
         });
     });
