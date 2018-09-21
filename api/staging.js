@@ -154,7 +154,29 @@ router.get('/logout', function(req, res) {
 });
 
 router.get('/user', function(req, res) {
-    res.send(req.session.user);
+    const currentUserID = req.session.user.id;
+
+    mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        mongodb.collection(GROUP_DB).find({ id: { $in: user[0].group_ids }}).toArray(function(err, groups) {
+            if (err) {
+                handleUnexpectedError(err, res);
+                return;
+            }
+            user[0].group_ids = groups;
+            mongodb.collection(GROUP_DB).find({ id: { $in: user[0].invitations }}).toArray(function(err, invitations) {
+                if (err) {
+                    handleUnexpectedError(err, res);
+                    return;
+                }
+                user[0].invitations = invitations;
+                res.send(user[0]);
+            });
+        });
+    });
 });
 
 router.get('/user/:userId', function(req, res) {
@@ -182,20 +204,6 @@ router.get('/user/:userId', function(req, res) {
         } else {
             res.status(404).send('This user does not exist.');
         }
-    });
-});
-
-router.get('/groups', function(req, res) {
-    // Should be returned in reverse chronological order
-    const currentUserID = req.session.user.id;
-
-    mongodb.collection(GROUP_DB).find({ $or: [ { members: { $in: [currentUserID] }}, 
-        { pending: { $in: [currentUserID] }}]}).sort({ pending: -1, created_time: -1 }).toArray(function(err, result) {
-        if (err) {
-            handleUnexpectedError(err, res);
-            return;
-        }
-        res.send(result);
     });
 });
 
