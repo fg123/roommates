@@ -14,6 +14,11 @@
     });
 
     confirmLeaveButton.addEventListener('click', function() {
-        // TODO: Call endpoint
+        dialog.close();
+        axios.post('/api/staging/group/' + app.getGroupId() + '/leave').then(() => {
+            refreshGroups();
+        }).catch((error) => {
+            alert(error);
+        });
     });
 })();

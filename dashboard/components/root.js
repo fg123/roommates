@@ -20,19 +20,30 @@ const app = new Vue({
                 return 'No Group Selected!';
             }
             return this.groups[this.active_group].name;
+        },
+        getGroupId() {
+            if (this.active_group === undefined)
+                return '';
+            return this.groups[this.active_group].id;
+        },
+        cancelInvite(event, email) {
+            const button = event.currentTarget;
+            button.disabled = true;
+            axios.delete('/api/staging/group/' + app.getGroupId() + '/invite', { data: { email: email }}).then(() => {
+                refreshGroup(app.getGroupId());
+            }).catch((error) => {
+                alert(error);
+                button.disabled = false;
+            });
         }
+
     },
     watch: {
         active_group: function(newVal) {
-            console.log('Active group changed');
-            if (newVal === undefined) return [];
-            if (newVal >= this.groups.length) return [];
-            const id = this.groups[newVal].id;
-            axios.get(`/api/staging/group/${id}`).then(response => {
-                response = response.data;
-                this.members = response.members;
-                this.pending_invitations = response.pending;
-            });
+            if (newVal === undefined) return;
+            if (newVal >= this.groups.length) return;
+            if (newVal < 0) return;
+            refreshGroup(this.groups[newVal].id);
         }
     },
     mounted() {
@@ -45,6 +56,14 @@ const app = new Vue({
         refreshGroups();
     }
 });
+
+function refreshGroup(id) {
+    axios.get(`/api/staging/group/${id}`).then(response => {
+        response = response.data;
+        app.members = response.members;
+        app.pending_invitations = response.pending;
+    });
+}
 
 function refreshGroups() {
     axios.get('/api/staging/groups').then(response => {
