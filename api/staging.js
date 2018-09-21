@@ -24,8 +24,8 @@ const GROUP_DB = 'groups';
 MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
     assert.equal(null, err);
     mongodb = db.db();
-    mongodb.collection(USER_DB).ensureIndex('id');
-    mongodb.collection(GROUP_DB).ensureIndex('id');
+    mongodb.collection(USER_DB).createIndex('id');
+    mongodb.collection(GROUP_DB).createIndex('id');
 });
 
 function handleUnexpectedError(err, res) {
@@ -33,8 +33,21 @@ function handleUnexpectedError(err, res) {
     console.err(err);
 }
 
-function invalidInput(str){
+function invalidInput(str) {
     return str === null || str.match(/^ *$/) !== null;
+}
+
+function createNewUser(name, email, picture) {
+    return {
+        name: name,
+        email: email,
+        picture: picture,
+        created_time: Date.now(),
+        id: undefined,
+        group_ids: [],
+        invitations: []
+    };
+
 }
 
 router.get('/auth', function(req, res) {
@@ -58,18 +71,51 @@ router.post('/login', function(req, res) {
                     return;
                 }
                 if (result === 0) {
-                    const newUser = {
-                        name: payload.name,
-                        email: payload.email,
-                        picture: payload.picture,
-                        created_time: Date.now(),
-                        id: payload.sub,
-                        group_ids: []
-                    };
-                    mongodb.collection(USER_DB).insertOne(newUser);
-                    req.session.user = newUser;
-                    console.log(req.session.user);
-                    res.send('ok');
+                    mongodb.collection(USER_DB).find({ email: payload.email }).toArray(function(err, user) {
+                        if (err) {
+                            handleUnexpectedError(err, res);
+                            return;
+                        }
+                        console.log(user.length);
+                        if (user.length > 0) {
+                            mongodb.collection(USER_DB).findOneAndUpdate(
+                                {
+                                    email: payload.email
+                                }, {
+                                    $set:
+                                        {
+                                            'name': payload.name,
+                                            'picture': payload.picture,
+                                            'created_time': Date.now(),
+                                            'id': payload.sub
+
+                                        }
+                                }, { 
+                                    returnOriginal: false  
+                                }, function(err, updatedUser) {
+                                    if (err) {
+                                        handleUnexpectedError(err, res);
+                                        return;
+                                    }
+                                    req.session.user = updatedUser.value;
+                                    console.log(updatedUser.value);
+                                    res.send('ok');
+                                }
+                            );
+                        } else {
+                            let newUser = createNewUser(payload.name, payload.email, payload.picture);
+                            newUser.id = payload.sub;
+                            mongodb.collection(USER_DB).insertOne(newUser, function(err) {
+                                if (err) {
+                                    handleUnexpectedError(err, res);
+                                    return;
+                                }
+                                req.session.user = newUser;
+                                console.log(req.session.user);
+                                res.send('ok');
+                            });   
+                        }
+                    });
                 } else {
                     console.log(payload.sub + ' is already in the database.');
                     mongodb.collection(USER_DB).findOneAndUpdate(
@@ -82,7 +128,7 @@ router.post('/login', function(req, res) {
                                 picture: payload.picture
                             }
                         }, { 
-                            returnNewDocument: true 
+                            returnOriginal: false 
                         }, function(err, updatedUser) {
                             if (err) {
                                 handleUnexpectedError(err, res);
@@ -108,7 +154,29 @@ router.get('/logout', function(req, res) {
 });
 
 router.get('/user', function(req, res) {
-    res.send(req.session.user);
+    const currentUserID = req.session.user.id;
+
+    mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        mongodb.collection(GROUP_DB).find({ id: { $in: user[0].group_ids }}).toArray(function(err, groups) {
+            if (err) {
+                handleUnexpectedError(err, res);
+                return;
+            }
+            user[0].group_ids = groups;
+            mongodb.collection(GROUP_DB).find({ id: { $in: user[0].invitations }}).toArray(function(err, invitations) {
+                if (err) {
+                    handleUnexpectedError(err, res);
+                    return;
+                }
+                user[0].invitations = invitations;
+                res.send(user[0]);
+            });
+        });
+    });
 });
 
 router.get('/user/:userId', function(req, res) {
@@ -136,20 +204,6 @@ router.get('/user/:userId', function(req, res) {
         } else {
             res.status(404).send('This user does not exist.');
         }
-    });
-});
-
-router.get('/groups', function(req, res) {
-    // Should be returned in reverse chronological order
-    const currentUserID = req.session.user.id;
-
-    mongodb.collection(GROUP_DB).find({ $or: [ { members: { $in: [currentUserID] }}, 
-        { pending: { $in: [currentUserID] }}]}).sort({ pending: -1, created_time: -1 }).toArray(function(err, result) {
-        if (err) {
-            handleUnexpectedError(err, res);
-            return;
-        }
-        res.send(result);
     });
 });
 
@@ -345,7 +399,7 @@ router.post('/group/:groupId/leave', function(req, res) {
                 {
                     'members': newMembers
                 }
-            }, function(err, innerResult) {
+            }, function(err) {
                 if (err) {
                     handleUnexpectedError(err, res);
                     return;
@@ -383,4 +437,196 @@ router.post('/group/:groupId/leave', function(req, res) {
             });
     });
 });
+
+router.post('/group/:groupId/invite', function(req, res) {
+    const groupID = req.params.groupId;
+    const email = req.body.email;
+    const currentUserID = req.session.user.id;
+    
+    if (invalidInput(email)){
+        res.status(400).send('Invalid email entered.');
+        return;
+    }
+
+    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).count(function(err, count) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        if (count < 1) {
+            res.status(403).send('You do not have authorization to make this request.');
+            return;
+        }
+        mongodb.collection(USER_DB).find({ email: email }).toArray(function(err, user) {
+            if (err) {
+                handleUnexpectedError(err, res);
+                return;
+            }
+
+            if (user.length > 0) {
+                if (user[0].invitations.includes(groupID)) {
+                    res.status(400).send('This user has already been invited to this group.');
+                    return;
+                }
+
+                if (user[0].group_ids.includes(groupID)) {
+                    res.status(400).send('This user is already part of this group.');
+                    return;
+                }
+
+                user[0].invitations.push(groupID);
+                
+                mongodb.collection(USER_DB).updateOne({
+                    id: user[0].id
+                }, {
+                    $set:
+                    {
+                        'invitations': user[0].invitations
+                    }
+                }, function(err) {
+                    if (err) {
+                        handleUnexpectedError(err, res);
+                        return;
+                    }
+                    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+                        if (err) {
+                            handleUnexpectedError(err, res);
+                            return;
+                        }
+                        if (group.length <= 0) {
+                            res.status(404).send('This group does not exist');
+                            return;
+                        }
+
+                        group[0].pending.push(email);
+
+                        mongodb.collection(GROUP_DB).updateOne({
+                            id: groupID
+                        }, {
+                            $set:
+                            {
+                                'pending': group[0].pending
+                            }
+                        }, function(err) {
+                            if (err) {
+                                handleUnexpectedError(err, res);
+                                return;
+                            }
+                            res.status(200).send('ok');
+                        });
+                    });
+                });
+            } else {
+                let newUser = createNewUser(undefined, email, undefined);
+                newUser.invitations.push(groupID);
+
+                mongodb.collection(USER_DB).insertOne(newUser, function(err) {
+                    if (err) {
+                        handleUnexpectedError(err, res);
+                        return;
+                    }
+                    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+                        if (err) {
+                            handleUnexpectedError(err, res);
+                            return;
+                        }
+                        if (group.length <= 0) {
+                            res.status(404).send('This group does not exist');
+                            return;
+                        }
+
+                        group[0].pending.push(email);
+
+                        mongodb.collection(GROUP_DB).updateOne({
+                            id: groupID
+                        }, {
+                            $set:
+                            {
+                                'pending': group[0].pending
+                            }
+                        }, function(err) {
+                            if (err) {
+                                handleUnexpectedError(err, res);
+                                return;
+                            }
+                            res.status(200).send('ok');
+                        });
+                    });
+                });
+            }
+        });
+    });
+});
+
+router.delete('/group/:groupId/invite', function(req, res) {
+    const groupID = req.params.groupId;
+    const email = req.body.email;
+    const currentUserID = req.session.user.id;
+
+    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).count(function(err, count) {
+        if (err) {
+            handleUnexpectedError(err, res);
+            return;
+        }
+        if (count < 1) {
+            res.status(403).send('You do not have authorization to make this request.');
+            return;
+        }
+        mongodb.collection(USER_DB).find({ email: email }).toArray(function(err, user) {
+            if (err) {
+                handleUnexpectedError(err, res);
+                return;
+            }
+            if (invalidInput(email) || user.length < 1){
+                res.status(400).send('Invalid email entered.');
+                return;
+            }
+
+            const newInvites = user[0].invitations.filter(item => item !== groupID);  
+
+            mongodb.collection(USER_DB).updateOne({
+                email: email
+            }, {
+                $set:
+                    {
+                        'invitations': newInvites
+                    }
+            }, function(err) {
+                if (err) {
+                    handleUnexpectedError(err, res);
+                    return;
+                }
+
+                mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+                    if (err) {
+                        handleUnexpectedError(err, res);
+                        return;
+                    }
+                    if (group.length <= 0) {
+                        res.status(404).send('This group does not exist');
+                        return;
+                    }
+
+                    const newPending = group[0].pending.filter(item => item !== email);  
+
+                    mongodb.collection(GROUP_DB).updateOne({
+                        id: groupID
+                    }, {
+                        $set:
+                        {
+                            'pending': newPending
+                        }
+                    }, function(err) {
+                        if (err) {
+                            handleUnexpectedError(err, res);
+                            return;
+                        }
+                        res.status(200).send('ok');
+                    });
+                });                        
+            });
+        });
+    });
+});
+
 module.exports = router;
