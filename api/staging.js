@@ -90,8 +90,8 @@ router.post('/login', function(req, res) {
                                             'id': payload.sub
 
                                         }
-                                }, { 
-                                    returnOriginal: false  
+                                }, {
+                                    returnOriginal: false
                                 }, function(err, updatedUser) {
                                     if (err) {
                                         handleUnexpectedError(err, res);
@@ -113,7 +113,7 @@ router.post('/login', function(req, res) {
                                 req.session.user = newUser;
                                 console.log(req.session.user);
                                 res.send('ok');
-                            });   
+                            });
                         }
                     });
                 } else {
@@ -127,8 +127,8 @@ router.post('/login', function(req, res) {
                                 email: payload.email,
                                 picture: payload.picture
                             }
-                        }, { 
-                            returnOriginal: false 
+                        }, {
+                            returnOriginal: false
                         }, function(err, updatedUser) {
                             if (err) {
                                 handleUnexpectedError(err, res);
@@ -166,7 +166,7 @@ router.get('/user', function(req, res) {
                 handleUnexpectedError(err, res);
                 return;
             }
-            user[0].group_ids = groups;
+            user[0].groups = groups;
             mongodb.collection(GROUP_DB).find({ id: { $in: user[0].invitations }}).toArray(function(err, invitations) {
                 if (err) {
                     handleUnexpectedError(err, res);
@@ -181,13 +181,13 @@ router.get('/user', function(req, res) {
 
 router.get('/user/:userId', function(req, res) {
     const userID = req.params.userId;
-    
+
     const currentUserID = req.session.user.id;
-    
+
     let query = [currentUserID, userID];
 
     if (userID == currentUserID) query = [userID];
-    
+
     mongodb.collection(GROUP_DB).find({ members: query }).toArray(function(err, result) {
         if (err) {
             handleUnexpectedError(err, res);
@@ -207,10 +207,10 @@ router.get('/user/:userId', function(req, res) {
     });
 });
 
-/* takes a group name, creates a unique ID and creates a group, joins user to group, 
+/* takes a group name, creates a unique ID and creates a group, joins user to group,
 then returns the new group */
 
-router.post('/groups', function(req, res) { 
+router.post('/groups', function(req, res) {
     const currentUserID = req.session.user.id;
 
     if (invalidInput(req.body.name)){
@@ -255,7 +255,7 @@ router.post('/groups', function(req, res) {
 
 router.post('/group/:groupId/join', function(req, res) {
     const currentUserID = req.session.user.id;
-    
+
     const groupID = req.params.groupId;
 
     mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
@@ -271,7 +271,7 @@ router.post('/group/:groupId/join', function(req, res) {
             res.status(404).send('This group does not exist.');
             return;
         }
-        const newPending = result.pending.filter(item => item !== currentUserID);        
+        const newPending = result.pending.filter(item => item !== currentUserID);
         result.members.push(currentUserID);
         mongodb.collection(GROUP_DB).updateOne(
             {
@@ -312,7 +312,7 @@ router.post('/group/:groupId/join', function(req, res) {
 
 router.post('/group/:groupId/decline', function(req, res) {
     const currentUserID = req.session.user.id;
-    
+
     const groupID = req.params.groupId;
 
     mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
@@ -326,7 +326,7 @@ router.post('/group/:groupId/decline', function(req, res) {
             res.status(404).send('Cannot decline invitation for this group.');
             return;
         }
-        const newPending = result.pending.filter(item => item !== currentUserID);        
+        const newPending = result.pending.filter(item => item !== currentUserID);
         mongodb.collection(GROUP_DB).updateOne(
             {
                 id: groupID
@@ -340,16 +340,16 @@ router.post('/group/:groupId/decline', function(req, res) {
                     handleUnexpectedError(err, res);
                     return;
                 }
-                res.status(200).send('ok');        
+                res.status(200).send('ok');
             });
     });
 });
 
 router.get('/group/:groupId', function(req, res) {
     const groupID = req.params.groupId;
-    
+
     const currentUserID = req.session.user.id;
-    
+
     mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
         console.log(result);
         if (err) {
@@ -375,7 +375,7 @@ router.post('/group/:groupId/leave', function(req, res) {
     const groupID = req.params.groupId;
 
     const currentUserID = req.session.user.id;
-    
+
     mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
         if (err) {
             handleUnexpectedError(err, res);
@@ -411,12 +411,12 @@ router.post('/group/:groupId/leave', function(req, res) {
                     }
                     user = user[0];
                     const userIndex = user.group_ids.indexOf(groupID);
-                    
+
                     if (userIndex < 0) {
                         res.status(404).send('The group you are trying to leaving does not exist');
                         return;
                     }
-                    
+
                     const newGroupIDs = user.group_ids.filter(item => item !== groupID);
                     mongodb.collection(USER_DB).updateOne(
                         {
@@ -442,7 +442,7 @@ router.post('/group/:groupId/invite', function(req, res) {
     const groupID = req.params.groupId;
     const email = req.body.email;
     const currentUserID = req.session.user.id;
-    
+
     if (invalidInput(email)){
         res.status(400).send('Invalid email entered.');
         return;
@@ -475,7 +475,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                 }
 
                 user[0].invitations.push(groupID);
-                
+
                 mongodb.collection(USER_DB).updateOne({
                     id: user[0].id
                 }, {
@@ -514,7 +514,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                         handleUnexpectedError(err, res);
                         return;
                     }
-                
+
                     group[0].pending.push(email);
 
                     mongodb.collection(GROUP_DB).updateOne({
@@ -561,7 +561,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                 return;
             }
 
-            const newInvites = user[0].invitations.filter(item => item !== groupID);  
+            const newInvites = user[0].invitations.filter(item => item !== groupID);
 
             mongodb.collection(USER_DB).updateOne({
                 email: email
@@ -575,7 +575,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                     handleUnexpectedError(err, res);
                     return;
                 }
-                const newPending = group[0].pending.filter(item => item !== email);  
+                const newPending = group[0].pending.filter(item => item !== email);
 
                 mongodb.collection(GROUP_DB).updateOne({
                     id: groupID
@@ -590,7 +590,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                         return;
                     }
                     res.status(200).send('ok');
-                });                       
+                });
             });
         });
     });
