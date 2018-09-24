@@ -34,7 +34,7 @@ function handleUnexpectedError(err, res) {
 }
 
 function invalidInput(str) {
-    return str === null || str.match(/^ *$/) !== null;
+    return !str || str.match(/^ *$/) !== null;
 }
 
 function createNewUser(name, email, picture) {
@@ -161,6 +161,10 @@ router.get('/user', function(req, res) {
             handleUnexpectedError(err, res);
             return;
         }
+        if (user.length < 1) {
+            res.status(404).send('This user does not exist.');
+            return;
+        }
         mongodb.collection(GROUP_DB).find({ id: { $in: user[0].group_ids }}).toArray(function(err, groups) {
             if (err) {
                 handleUnexpectedError(err, res);
@@ -253,7 +257,8 @@ router.post('/groups', function(req, res) {
     });
 });
 
-router.post('/group/:groupId/join', function(req, res) {
+router.post('/group/:groupId/acceptInvite', function(req, res) {
+    const currentUserEmail = req.session.user.email;
     const currentUserID = req.session.user.id;
 
     const groupID = req.params.groupId;
@@ -263,15 +268,19 @@ router.post('/group/:groupId/join', function(req, res) {
             handleUnexpectedError(err, res);
             return;
         }
-
-        result = result[0];
-        const index = result.pending.indexOf(currentUserID);
-
-        if (index < 0){
+        if (result.length < 1) {
             res.status(404).send('This group does not exist.');
             return;
         }
-        const newPending = result.pending.filter(item => item !== currentUserID);
+
+        result = result[0];
+        const index = result.pending.indexOf(currentUserEmail);
+
+        if (index < 0) {
+            res.status(404).send('This group does not exist.');
+            return;
+        }
+        const newPending = result.pending.filter(item => item !== currentUserEmail);
         result.members.push(currentUserID);
         mongodb.collection(GROUP_DB).updateOne(
             {
@@ -282,35 +291,46 @@ router.post('/group/:groupId/join', function(req, res) {
                     'members': result.members,
                     'pending': newPending
                 }
-            });
-
-        mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
-            if (err) {
-                handleUnexpectedError(err, res);
-                return;
-            }
-            user = user[0];
-            user.group_ids.push(groupID);
-            mongodb.collection(USER_DB).updateOne(
-                {
-                    id: currentUserID
-                }, {
-                    $set:
-                    {
-                        'group_ids': user.group_ids
-                    }
-                }, function(err) {
-                    if (err){
+            }, function (err) {
+                if (err) {
+                    handleUnexpectedError(err, res);
+                    return;
+                }
+                mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+                    if (err) {
                         handleUnexpectedError(err, res);
                         return;
                     }
-                    res.status(200).send('ok');
+                    if (user.length < 0) {
+                        res.status(404).send('This user does not exist.');
+                        return;
+                    }
+                    user = user[0];
+                    user.group_ids.push(groupID);
+                    const newInvitations = user.invitations.filter(item => item !== groupID);
+                    mongodb.collection(USER_DB).updateOne(
+                        {
+                            id: currentUserID
+                        }, {
+                            $set:
+                            {
+                                'group_ids': user.group_ids,
+                                'invitations': newInvitations
+                            }
+                        }, function(err) {
+                            if (err){
+                                handleUnexpectedError(err, res);
+                                return;
+                            }
+                            res.status(200).send('ok');
+                        });
                 });
-        });
+            });
     });
 });
 
-router.post('/group/:groupId/decline', function(req, res) {
+router.post('/group/:groupId/declineInvite', function(req, res) {
+    const currentUserEmail = req.session.user.email;
     const currentUserID = req.session.user.id;
 
     const groupID = req.params.groupId;
@@ -320,13 +340,18 @@ router.post('/group/:groupId/decline', function(req, res) {
             handleUnexpectedError(err, res);
             return;
         }
+        if (result.length < 1) {
+            res.status(404).send('This group does not exist.');
+            return;
+        }
+
         result = result[0];
-        const index = result.pending.indexOf(currentUserID);
-        if (index < 0){
+        const index = result.pending.indexOf(currentUserEmail);
+        if (index < 0) {
             res.status(404).send('Cannot decline invitation for this group.');
             return;
         }
-        const newPending = result.pending.filter(item => item !== currentUserID);
+        const newPending = result.pending.filter(item => item !== currentUserEmail);
         mongodb.collection(GROUP_DB).updateOne(
             {
                 id: groupID
@@ -340,7 +365,33 @@ router.post('/group/:groupId/decline', function(req, res) {
                     handleUnexpectedError(err, res);
                     return;
                 }
-                res.status(200).send('ok');
+                mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+                    if (err) {
+                        handleUnexpectedError(err, res);
+                        return;
+                    }
+                    if (user.length < 0) {
+                        res.status(404).send('This user does not exist.');
+                        return;
+                    }
+                    user = user[0];
+                    const newInvitations = user.invitations.filter(item => item !== groupID);
+                    mongodb.collection(USER_DB).updateOne(
+                        {
+                            id: currentUserID
+                        }, {
+                            $set:
+                            {
+                                'invitations': newInvitations
+                            }
+                        }, function(err) {
+                            if (err){
+                                handleUnexpectedError(err, res);
+                                return;
+                            }
+                            res.status(200).send('ok');
+                        });
+                });
             });
     });
 });
@@ -366,6 +417,9 @@ router.get('/group/:groupId', function(req, res) {
                 return;
             }
             result[0].members = innerResult;
+            // On the client side, we want to show the current user first; doing
+            // the processing here saves some time on the client side.
+            result[0].members.sort((x,y) => x.id == currentUserID ? -1 : y.id == currentUserID ? 1 : 0);
             res.send(result[0]);
         });
     });
@@ -382,10 +436,15 @@ router.post('/group/:groupId/leave', function(req, res) {
             return;
         }
 
+        if (result.length < 1) {
+            res.status(404).send('This group does not exist.');
+            return;
+        }
+
         result = result[0];
         const groupIndex = result.members.indexOf(currentUserID);
 
-        if (result.length < 1 || groupIndex < 0){
+        if (groupIndex < 0) {
             res.status(404).send('This group does not exist.');
             return;
         }
