@@ -382,10 +382,15 @@ router.post('/group/:groupId/leave', function(req, res) {
             return;
         }
 
+        if (result.length < 1) {
+            res.status(404).send('This group does not exist.');
+            return;
+        }
+
         result = result[0];
         const groupIndex = result.members.indexOf(currentUserID);
 
-        if (result.length < 1 || groupIndex < 0){
+        if (groupIndex < 0) {
             res.status(404).send('This group does not exist.');
             return;
         }
