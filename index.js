@@ -35,6 +35,7 @@ app.get('/logout', function(req, res) {
 
 app.use('/api', require('./api/index'));
 app.use('/api/staging', require('./api/staging'));
+app.use('/api/groceries', require('./api/groceries'));
 
 app.use('/static', express.static('./static'));
 
