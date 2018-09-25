@@ -563,7 +563,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                         return;
                     }
                     res.status(200).send('ok');
-                });                       
+                });
             });
         });
     });
