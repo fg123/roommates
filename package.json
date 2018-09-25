@@ -28,6 +28,7 @@
         "body-parser": "^1.18.3",
         "css-loader": "^1.0.0",
         "express": "^4.16.3",
+        "express-mongo-db": "^2.0.4",
         "express-session": "^1.15.6",
         "google-auth-library": "^2.0.0",
         "material-components-web": "^0.39.3",
