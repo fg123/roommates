@@ -14,11 +14,9 @@ const USER_DB = 'users';
 const GROUP_DB = 'groups';
 const GROCERY_DB = 'groceries';
 
-const mongoPort = process.env.PORT || 27017;
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(expressMongoDb('mongodb://localhost:'+mongoPort+'/roommate', { useNewUrlParser: true }, function(err, db) {
+app.use(expressMongoDb(process.env.mongo_db || 'mongodb://localhost:27017/roommate', { useNewUrlParser: true }, function(err, db) {
     db.collection(USER_DB).createIndex('id');
     db.collection(GROUP_DB).createIndex('id');
     db.collection(GROCERY_DB).createIndex('id');

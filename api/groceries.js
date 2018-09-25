@@ -49,10 +49,6 @@ router.post('/group/:groupId/groceries/add', function(req, res) {
             utils.handleUnexpectedError(err, res);
             return;
         }
-        if (groceryList.length < 1) {
-            res.status(400).send('Your group does not have a grocery list.');
-            return;
-        }
 
         const newItem = {
             id: uuidv4(),
@@ -60,16 +56,31 @@ router.post('/group/:groupId/groceries/add', function(req, res) {
             added_by: currentUserID,
             created_time: Date.now()
         };
-        
-        groceryList[0].items.push(newItem);
 
-        req.db.collection(GROCERY_DB).updateOne({ id: groupID }, { $set: { items: groceryList[0].items }}, function(err) {
-            if (err) {
-                utils.handleUnexpectedError(err, res);
-                return;
-            }
-            res.send(groceryList[0].items);
-        });
+        if (groceryList.length < 1) {
+            const newGroceryList = {
+                id: groupID,
+                items: [newItem]
+            };
+            
+            req.db.collection(GROCERY_DB).insertOne(newGroceryList, function(err) {
+                if (err) {
+                    utils.handleUnexpectedError(err, res);
+                    return;
+                }
+                res.send(newGroceryList.items);
+            });
+        } else {
+            groceryList[0].items.push(newItem);
+
+            req.db.collection(GROCERY_DB).updateOne({ id: groupID }, { $set: { items: groceryList[0].items }}, function(err) {
+                if (err) {
+                    utils.handleUnexpectedError(err, res);
+                    return;
+                }
+                res.send(groceryList[0].items);
+            });
+        }
     });
 });
 
