@@ -8,34 +8,10 @@ const router = require('express').Router();
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(clientId);
 const uuidv4 = require('uuid/v4');
-const MongoClient = require('mongodb').MongoClient;
-const assert = require('assert');
-
-// This is a global variable we'll use for handing the MongoDB client
-let mongodb;
-
-// Connection URL
-const url = 'mongodb://localhost:27017/roommate';
+const utils = require('./utils');
 
 const USER_DB = 'users';
 const GROUP_DB = 'groups';
-
-// Create the db connection
-MongoClient.connect(url, { useNewUrlParser: true }, function(err, db) {
-    assert.equal(null, err);
-    mongodb = db.db();
-    mongodb.collection(USER_DB).createIndex('id');
-    mongodb.collection(GROUP_DB).createIndex('id');
-});
-
-function handleUnexpectedError(err, res) {
-    res.status(500).send('An unexpected error occurred during database operation.');
-    console.err(err);
-}
-
-function invalidInput(str) {
-    return str === null || str.match(/^ *$/) !== null;
-}
 
 function createNewUser(name, email, picture) {
     return {
@@ -47,7 +23,6 @@ function createNewUser(name, email, picture) {
         group_ids: [],
         invitations: []
     };
-
 }
 
 router.get('/auth', function(req, res) {
@@ -65,20 +40,20 @@ router.post('/login', function(req, res) {
     }
     verifyAndGetPayload()
         .then(payload => {
-            mongodb.collection(USER_DB).find({ id: payload.sub }).count(function(err, result) {
+            req.db.collection(USER_DB).find({ id: payload.sub }).count(function(err, result) {
                 if (err) {
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
                 if (result === 0) {
-                    mongodb.collection(USER_DB).find({ email: payload.email }).toArray(function(err, user) {
+                    req.db.collection(USER_DB).find({ email: payload.email }).toArray(function(err, user) {
                         if (err) {
-                            handleUnexpectedError(err, res);
+                            utils.handleUnexpectedError(err, res);
                             return;
                         }
                         console.log(user.length);
                         if (user.length > 0) {
-                            mongodb.collection(USER_DB).findOneAndUpdate(
+                            req.db.collection(USER_DB).findOneAndUpdate(
                                 {
                                     email: payload.email
                                 }, {
@@ -94,7 +69,7 @@ router.post('/login', function(req, res) {
                                     returnOriginal: false  
                                 }, function(err, updatedUser) {
                                     if (err) {
-                                        handleUnexpectedError(err, res);
+                                        utils.handleUnexpectedError(err, res);
                                         return;
                                     }
                                     req.session.user = updatedUser.value;
@@ -105,9 +80,9 @@ router.post('/login', function(req, res) {
                         } else {
                             let newUser = createNewUser(payload.name, payload.email, payload.picture);
                             newUser.id = payload.sub;
-                            mongodb.collection(USER_DB).insertOne(newUser, function(err) {
+                            req.db.collection(USER_DB).insertOne(newUser, function(err) {
                                 if (err) {
-                                    handleUnexpectedError(err, res);
+                                    utils.handleUnexpectedError(err, res);
                                     return;
                                 }
                                 req.session.user = newUser;
@@ -118,7 +93,7 @@ router.post('/login', function(req, res) {
                     });
                 } else {
                     console.log(payload.sub + ' is already in the database.');
-                    mongodb.collection(USER_DB).findOneAndUpdate(
+                    req.db.collection(USER_DB).findOneAndUpdate(
                         {
                             id: payload.sub
                         }, {
@@ -131,7 +106,7 @@ router.post('/login', function(req, res) {
                             returnOriginal: false 
                         }, function(err, updatedUser) {
                             if (err) {
-                                handleUnexpectedError(err, res);
+                                utils.handleUnexpectedError(err, res);
                                 return;
                             }
                             req.session.user = updatedUser.value;
@@ -156,20 +131,20 @@ router.get('/logout', function(req, res) {
 router.get('/user', function(req, res) {
     const currentUserID = req.session.user.id;
 
-    mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+    req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
-        mongodb.collection(GROUP_DB).find({ id: { $in: user[0].group_ids }}).toArray(function(err, groups) {
+        req.db.collection(GROUP_DB).find({ id: { $in: user[0].group_ids }}).toArray(function(err, groups) {
             if (err) {
-                handleUnexpectedError(err, res);
+                utils.handleUnexpectedError(err, res);
                 return;
             }
             user[0].group_ids = groups;
-            mongodb.collection(GROUP_DB).find({ id: { $in: user[0].invitations }}).toArray(function(err, invitations) {
+            req.db.collection(GROUP_DB).find({ id: { $in: user[0].invitations }}).toArray(function(err, invitations) {
                 if (err) {
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
                 user[0].invitations = invitations;
@@ -188,15 +163,15 @@ router.get('/user/:userId', function(req, res) {
 
     if (userID == currentUserID) query = [userID];
     
-    mongodb.collection(GROUP_DB).find({ members: query }).toArray(function(err, result) {
+    req.db.collection(GROUP_DB).find({ members: query }).toArray(function(err, result) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
         if (result.length > 0){
-            mongodb.collection(USER_DB).find({ id: userID }).toArray(function(err, user){
+            req.db.collection(USER_DB).find({ id: userID }).toArray(function(err, user){
                 if (err) {
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
                 res.send(user[0]);
@@ -213,7 +188,7 @@ then returns the new group */
 router.post('/groups', function(req, res) { 
     const currentUserID = req.session.user.id;
 
-    if (invalidInput(req.body.name)){
+    if (utils.invalidInput(req.body.name)){
         res.status(400).send('Invalid group name entered.');
         return;
     }
@@ -226,16 +201,16 @@ router.post('/groups', function(req, res) {
         pending: []
     };
 
-    mongodb.collection(GROUP_DB).insertOne(newGroup);
+    req.db.collection(GROUP_DB).insertOne(newGroup);
 
-    mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, result) {
+    req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, result) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
         result = result[0];
         result.group_ids.push(newGroup.id);
-        mongodb.collection(USER_DB).updateOne(
+        req.db.collection(USER_DB).updateOne(
             {
                 id: currentUserID
             }, {
@@ -245,7 +220,7 @@ router.post('/groups', function(req, res) {
                     }
             }, function(err) {
                 if (err){
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
                 res.send(newGroup);
@@ -258,9 +233,9 @@ router.post('/group/:groupId/join', function(req, res) {
     
     const groupID = req.params.groupId;
 
-    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+    req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
 
@@ -273,7 +248,7 @@ router.post('/group/:groupId/join', function(req, res) {
         }
         const newPending = result.pending.filter(item => item !== currentUserID);        
         result.members.push(currentUserID);
-        mongodb.collection(GROUP_DB).updateOne(
+        req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
             }, {
@@ -284,14 +259,14 @@ router.post('/group/:groupId/join', function(req, res) {
                 }
             });
 
-        mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+        req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
             if (err) {
-                handleUnexpectedError(err, res);
+                utils.handleUnexpectedError(err, res);
                 return;
             }
             user = user[0];
             user.group_ids.push(groupID);
-            mongodb.collection(USER_DB).updateOne(
+            req.db.collection(USER_DB).updateOne(
                 {
                     id: currentUserID
                 }, {
@@ -301,7 +276,7 @@ router.post('/group/:groupId/join', function(req, res) {
                     }
                 }, function(err) {
                     if (err){
-                        handleUnexpectedError(err, res);
+                        utils.handleUnexpectedError(err, res);
                         return;
                     }
                     res.status(200).send('ok');
@@ -315,9 +290,9 @@ router.post('/group/:groupId/decline', function(req, res) {
     
     const groupID = req.params.groupId;
 
-    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+    req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
         result = result[0];
@@ -327,7 +302,7 @@ router.post('/group/:groupId/decline', function(req, res) {
             return;
         }
         const newPending = result.pending.filter(item => item !== currentUserID);        
-        mongodb.collection(GROUP_DB).updateOne(
+        req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
             }, {
@@ -337,7 +312,7 @@ router.post('/group/:groupId/decline', function(req, res) {
                 }
             }, function (err) {
                 if (err){
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
                 res.status(200).send('ok');        
@@ -347,22 +322,20 @@ router.post('/group/:groupId/decline', function(req, res) {
 
 router.get('/group/:groupId', function(req, res) {
     const groupID = req.params.groupId;
-    
     const currentUserID = req.session.user.id;
     
-    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
-        console.log(result);
+    req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
         if (result.length <= 0){
             res.status(404).send('This group does not exist.');
             return;
         }
-        mongodb.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(err, innerResult) {
+        req.db.collection(USER_DB).find({ id: { $in: result[0].members }}).toArray(function(err, innerResult) {
             if (err) {
-                handleUnexpectedError(err, res);
+                utils.handleUnexpectedError(err, res);
                 return;
             }
             result[0].members = innerResult;
@@ -376,9 +349,9 @@ router.post('/group/:groupId/leave', function(req, res) {
 
     const currentUserID = req.session.user.id;
     
-    mongodb.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+    req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
 
@@ -391,7 +364,7 @@ router.post('/group/:groupId/leave', function(req, res) {
         }
 
         const newMembers = result.members.filter(item => item !== currentUserID);
-        mongodb.collection(GROUP_DB).updateOne(
+        req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
             }, {
@@ -401,12 +374,12 @@ router.post('/group/:groupId/leave', function(req, res) {
                 }
             }, function(err) {
                 if (err) {
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
-                mongodb.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+                req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
                     if (err) {
-                        handleUnexpectedError(err, res);
+                        utils.handleUnexpectedError(err, res);
                         return;
                     }
                     user = user[0];
@@ -418,7 +391,7 @@ router.post('/group/:groupId/leave', function(req, res) {
                     }
                     
                     const newGroupIDs = user.group_ids.filter(item => item !== groupID);
-                    mongodb.collection(USER_DB).updateOne(
+                    req.db.collection(USER_DB).updateOne(
                         {
                             id: currentUserID
                         }, {
@@ -428,7 +401,7 @@ router.post('/group/:groupId/leave', function(req, res) {
                         }
                         }, function(err) {
                             if (err){
-                                handleUnexpectedError(err, res);
+                                utils.handleUnexpectedError(err, res);
                                 return;
                             }
                             res.status(200).send('ok');
@@ -443,23 +416,23 @@ router.post('/group/:groupId/invite', function(req, res) {
     const email = req.body.email;
     const currentUserID = req.session.user.id;
     
-    if (invalidInput(email)){
+    if (utils.invalidInput(email)){
         res.status(400).send('Invalid email entered.');
         return;
     }
 
-    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
+    req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
         if (group.length < 1) {
             res.status(403).send('You do not have authorization to make this request.');
             return;
         }
-        mongodb.collection(USER_DB).find({ email: email }).toArray(function(err, user) {
+        req.db.collection(USER_DB).find({ email: email }).toArray(function(err, user) {
             if (err) {
-                handleUnexpectedError(err, res);
+                utils.handleUnexpectedError(err, res);
                 return;
             }
 
@@ -476,7 +449,7 @@ router.post('/group/:groupId/invite', function(req, res) {
 
                 user[0].invitations.push(groupID);
                 
-                mongodb.collection(USER_DB).updateOne({
+                req.db.collection(USER_DB).updateOne({
                     id: user[0].id
                 }, {
                     $set:
@@ -485,12 +458,12 @@ router.post('/group/:groupId/invite', function(req, res) {
                     }
                 }, function(err) {
                     if (err) {
-                        handleUnexpectedError(err, res);
+                        utils.handleUnexpectedError(err, res);
                         return;
                     }
                     group[0].pending.push(email);
 
-                    mongodb.collection(GROUP_DB).updateOne({
+                    req.db.collection(GROUP_DB).updateOne({
                         id: groupID
                     }, {
                         $set:
@@ -499,7 +472,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                             }
                     }, function(err) {
                         if (err) {
-                            handleUnexpectedError(err, res);
+                            utils.handleUnexpectedError(err, res);
                             return;
                         }
                         res.status(200).send('ok');
@@ -509,15 +482,15 @@ router.post('/group/:groupId/invite', function(req, res) {
                 let newUser = createNewUser(undefined, email, undefined);
                 newUser.invitations.push(groupID);
 
-                mongodb.collection(USER_DB).insertOne(newUser, function(err) {
+                req.db.collection(USER_DB).insertOne(newUser, function(err) {
                     if (err) {
-                        handleUnexpectedError(err, res);
+                        utils.handleUnexpectedError(err, res);
                         return;
                     }
                 
                     group[0].pending.push(email);
 
-                    mongodb.collection(GROUP_DB).updateOne({
+                    req.db.collection(GROUP_DB).updateOne({
                         id: groupID
                     }, {
                         $set:
@@ -526,7 +499,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                         }
                     }, function(err) {
                         if (err) {
-                            handleUnexpectedError(err, res);
+                            utils.handleUnexpectedError(err, res);
                             return;
                         }
                         res.status(200).send('ok');
@@ -542,28 +515,28 @@ router.delete('/group/:groupId/invite', function(req, res) {
     const email = req.body.email;
     const currentUserID = req.session.user.id;
 
-    mongodb.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
+    req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
         if (err) {
-            handleUnexpectedError(err, res);
+            utils.handleUnexpectedError(err, res);
             return;
         }
         if (group.length < 1) {
             res.status(403).send('You do not have authorization to make this request.');
             return;
         }
-        mongodb.collection(USER_DB).find({ email: email }).toArray(function(err, user) {
+        req.db.collection(USER_DB).find({ email: email }).toArray(function(err, user) {
             if (err) {
-                handleUnexpectedError(err, res);
+                utils.handleUnexpectedError(err, res);
                 return;
             }
-            if (invalidInput(email) || user.length < 1){
+            if (utils.invalidInput(email) || user.length < 1){
                 res.status(400).send('Invalid email entered.');
                 return;
             }
 
             const newInvites = user[0].invitations.filter(item => item !== groupID);  
 
-            mongodb.collection(USER_DB).updateOne({
+            req.db.collection(USER_DB).updateOne({
                 email: email
             }, {
                 $set:
@@ -572,12 +545,12 @@ router.delete('/group/:groupId/invite', function(req, res) {
                     }
             }, function(err) {
                 if (err) {
-                    handleUnexpectedError(err, res);
+                    utils.handleUnexpectedError(err, res);
                     return;
                 }
                 const newPending = group[0].pending.filter(item => item !== email);  
 
-                mongodb.collection(GROUP_DB).updateOne({
+                req.db.collection(GROUP_DB).updateOne({
                     id: groupID
                 }, {
                     $set:
@@ -586,7 +559,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                     }
                 }, function(err) {
                     if (err) {
-                        handleUnexpectedError(err, res);
+                        utils.handleUnexpectedError(err, res);
                         return;
                     }
                     res.status(200).send('ok');
@@ -595,5 +568,24 @@ router.delete('/group/:groupId/invite', function(req, res) {
         });
     });
 });
+
+router.all('/group/:groupId/*', function(req, res, next) {
+    const groupID = req.params.groupId;
+    const currentUserID = req.session.user.id;
+    
+    req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
+        if (err) {
+            utils.handleUnexpectedError(err, res);
+            return;
+        }
+        if (result.length <= 0){
+            res.status(404).send('This group does not exist.');
+            return;
+        }
+        next();
+    });
+});
+
+router.all('/group/:groupId/groceries*', require('./groceries'));
 
 module.exports = router;

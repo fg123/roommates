@@ -8,9 +8,19 @@ const session = require('express-session');
 const uuidv4 = require('uuid/v4');
 const app = express();
 const bodyParser = require('body-parser');
+const expressMongoDb = require('express-mongo-db');
+
+const USER_DB = 'users';
+const GROUP_DB = 'groups';
+const GROCERY_DB = 'groceries';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(expressMongoDb('mongodb://localhost:27017/roommate', { useNewUrlParser: true }, function(err, db) {
+    db.collection(USER_DB).createIndex('id');
+    db.collection(GROUP_DB).createIndex('id');
+    db.collection(GROCERY_DB).createIndex('id');
+}));
 
 const port = process.env.PORT || 3000;
 
@@ -35,7 +45,6 @@ app.get('/logout', function(req, res) {
 
 app.use('/api', require('./api/index'));
 app.use('/api/staging', require('./api/staging'));
-app.use('/api/groceries', require('./api/groceries'));
 
 app.use('/static', express.static('./static'));
 
