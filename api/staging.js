@@ -572,13 +572,13 @@ router.delete('/group/:groupId/invite', function(req, res) {
 router.all('/group/:groupId/*', function(req, res, next) {
     const groupID = req.params.groupId;
     const currentUserID = req.session.user.id;
-    
-    req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
+
+    req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
         if (err) {
             utils.handleUnexpectedError(err, res);
             return;
         }
-        if (result.length <= 0){
+        if (group.length <= 0) {
             res.status(404).send('This group does not exist.');
             return;
         }

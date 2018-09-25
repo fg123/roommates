@@ -52,12 +52,13 @@ app.use('/', function(req, res, next) {
     if (!auth.isLoggedIn(req)) {
         res.redirect('/login');
     } else {
-        req.url = `/dashboard/${req.url}`;
+        req.url = `/dashboard/dist/${req.url}`;
     }
     next();
 });
 
 app.use('/dashboard', express.static('./dashboard'));
+
 
 app.listen(port);
 console.log('Serving root on port ' + port);
