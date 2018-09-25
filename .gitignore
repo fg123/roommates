@@ -1,3 +1,6 @@
+# Ignore Built Files
+dashboard/dist/main.js
+
 # Logs
 logs
 *.log
