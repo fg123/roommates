@@ -8,7 +8,7 @@ const session = require('express-session');
 const uuidv4 = require('uuid/v4');
 const app = express();
 const bodyParser = require('body-parser');
-var expressMongoDb = require('express-mongo-db');
+const expressMongoDb = require('express-mongo-db');
 
 const USER_DB = 'users';
 const GROUP_DB = 'groups';
