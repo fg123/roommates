@@ -27,6 +27,7 @@
 import axios from 'axios';
 
 import manageGroupTab from './tabs/manage-group';
+import groceriesTab from './tabs/groceries';
 
 export default {
     name: 'group-display',
@@ -40,7 +41,7 @@ export default {
             tabs: [
                 ["Overview", undefined],
                 ["Expenses", undefined],
-                ["Groceries", undefined],
+                ["Groceries", groceriesTab],
                 ["Chores", undefined],
                 ["Manage Group", manageGroupTab],
             ],
