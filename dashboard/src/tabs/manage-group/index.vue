@@ -15,11 +15,15 @@
                 <mdc-list bordered>
                     <mdc-list-item v-bind:key="invite" v-for="invite in group.pending">
                         {{ invite }}
-                        <mdc-button slot="end-detail" @click="removeInvite(invite)"><i class="material-icons mdc-button__icon">cancel</i>remove</mdc-button>
+                        <mdc-button slot="end-detail" @click="removeInvite(invite)">
+                            <i class="material-icons mdc-button__icon">cancel</i>remove
+                        </mdc-button>
                     </mdc-list-item>
-                     <mdc-list-item style="height: auto; padding-top: 4px; padding-bottom: 4px">
-                        <mdc-textfield v-model="inviteEmail" label="Email" fullwidth></mdc-textfield>
-                        <mdc-button slot="end-detail" @click="inviteClicked" raised style="margin-left: 10px;"><i class="material-icons mdc-button__icon">person_add</i>invite</mdc-button>
+                    <mdc-list-item style="height: auto; padding-top: 4px; padding-bottom: 4px">
+                        <mdc-textfield v-model="inviteEmail" label="Email" fullwidth @keyup.enter="inviteClicked"></mdc-textfield>
+                        <mdc-button slot="end-detail" @click="inviteClicked" raised style="margin-left: 10px;">
+                            <i class="material-icons mdc-button__icon">person_add</i>invite
+                        </mdc-button>
                     </mdc-list-item>
                 </mdc-list>
             </mdc-layout-cell>
