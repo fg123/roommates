@@ -112,7 +112,7 @@ export default {
             }
         },
         createGroup() {
-            axios.post('/api/staging/groups', { name: this.createGroupDialogField.trim() }).then(() => {
+            axios.post('/api/groups', { name: this.createGroupDialogField.trim() }).then(() => {
                 this.loadUserAndGroups();
             }).catch(error => {
                 this.showRequestError(error);
@@ -120,7 +120,7 @@ export default {
         },
         acceptInvite(invite) {
             const id = invite.id;
-            axios.post(`/api/staging/group/${id}/acceptInvite`).then(() => {
+            axios.post(`/api/group/${id}/acceptInvite`).then(() => {
                 this.loadUserAndGroups();
             }).catch(error => {
                 this.showRequestError(error);
@@ -128,14 +128,14 @@ export default {
         },
         declineInvite(invite) {
             const id = invite.id;
-            axios.post(`/api/staging/group/${id}/declineInvite`).then(() => {
+            axios.post(`/api/group/${id}/declineInvite`).then(() => {
                 this.loadUserAndGroups();
             }).catch(error => {
                 this.showRequestError(error);
             });
         },
         loadUserAndGroups() {
-            axios.get('/api/staging/user').then(response => {
+            axios.get('/api/user').then(response => {
                 this.user = response.data;
                 if (this.user.groups.length > 0) {
                     this.selected_group = this.user.groups[0];

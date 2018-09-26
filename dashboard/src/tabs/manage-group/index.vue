@@ -57,7 +57,7 @@ export default {
     },
     methods: {
         confirmLeave: function () {
-            axios.post(`/api/staging/group/${this.group.id}/leave`).then(() => {
+            axios.post(`/api/group/${this.group.id}/leave`).then(() => {
                 this.root.loadUserAndGroups();
             }).catch((error) => {
                 this.root.showRequestError(error);
@@ -69,7 +69,7 @@ export default {
             }
             const email = this.inviteEmail;
             this.inviteEmail = "";
-            axios.post(`/api/staging/group/${this.group.id}/invite`, { email: email.trim() })
+            axios.post(`/api/group/${this.group.id}/invite`, { email: email.trim() })
             .then(() => this.reloadGroup())
             .catch((error) => {
                 this.root.showRequestError(error);
@@ -79,7 +79,7 @@ export default {
         removeInvite(email) {
             // DELETE has a weird issue where data must be explicitly specified
             // in the request.
-            axios.delete(`/api/staging/group/${this.group.id}/invite`, { data: { email: email }})
+            axios.delete(`/api/group/${this.group.id}/invite`, { data: { email: email }})
             .then(() => this.reloadGroup())
             .catch((error) => {
                 this.root.showRequestError(error);

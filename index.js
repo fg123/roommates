@@ -32,7 +32,7 @@ app.use(
         secret: uuidv4(),
         resave: false,
         saveUninitialized: true
-        //	cookie: { secure: true* }
+        //  cookie: { secure: true* }
     })
 );
 
@@ -44,7 +44,6 @@ app.get('/logout', function(req, res) {
 });
 
 app.use('/api', require('./api/index'));
-app.use('/api/staging', require('./api/staging'));
 
 app.use('/static', express.static('./static'));
 
@@ -58,7 +57,6 @@ app.use('/', function(req, res, next) {
 });
 
 app.use('/dashboard', express.static('./dashboard'));
-
 
 app.listen(port);
 console.log('Serving root on port ' + port);
