@@ -44,17 +44,21 @@ export default {
     },
     methods: {
         addEntry() {
-            this.groceryList.unshift({
-                id: this.groceryList.length,
-                item: this.pendingGroceryItem,
-                added_by: this.root.user.id,
-                created_time: Date.now()
-            });
+            const item = this.pendingGroceryItem;
             this.pendingGroceryItem = "";
+            axios.post(`/api/group/${this.group.id}/groceries/add`, { item: item }).then(response => {
+                this.reloadList();
+            }).catch(error => {
+                this.root.showRequestError(error);
+                this.pendingGroceryItem = item;
+            });
         },
         removeEntry(id) {
-            // Make axios call
-            this.groceryList = this.groceryList.filter(item => item.id !== id);
+            axios.delete(`/api/group/${this.group.id}/groceries/${id}`).then(response => {
+                this.reloadList();
+            }).catch(error => {
+                this.root.showRequestError(error);
+            });
         },
         fromTimestamp(timestamp) {
             const monthString = (m) => ["January", "February", "March", "April",
@@ -64,7 +68,11 @@ export default {
             return `${monthString(date.getMonth())} ${date.getDay()}, ${date.getFullYear()}`;
         },
         reloadList() {
-            // Make axios call
+            axios.get(`/api/group/${this.group.id}/groceries`).then(response => {
+                this.groceryList = response.data;
+            }).catch(error => {
+                this.root.showRequestError(error);
+            });
         }
     }
 }
