@@ -67,7 +67,7 @@ export default {
             }
         },
         reloadGroup() {
-            axios.get(`/api/staging/group/${this.group.id}`).then(response => {
+            axios.get(`/api/group/${this.group.id}`).then(response => {
                 this.fullGroup = response.data;
             }).catch(error => {
                 this.root.showRequestError(error);
