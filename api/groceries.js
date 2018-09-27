@@ -7,6 +7,7 @@ const uuidv4 = require('uuid/v4');
 const utils = require('./utils.js');
 
 const GROCERY_DB = 'groceries';
+const USER_DB = 'users';
 
 router.get('/group/:groupId/groceries', function(req, res) {
     const groupID = req.params.groupId;
@@ -29,13 +30,23 @@ router.get('/group/:groupId/groceries', function(req, res) {
                 res.send([]);
             });
         } else {
-            res.send(groceryList[0].items);
+            for (let index = 0; index < groceryList[0].items.length; index++) {
+                req.db.collection(USER_DB).find({ id: groceryList[0].items[index].added_by }).toArray(function(err, user) {
+                    if (err) {
+                        utils.handleUnexpectedError(err, res);
+                        return;
+                    }
+                    groceryList[0].items[index].added_by = user[0];
+                    if (index == groceryList[0].items.length - 1) res.send(groceryList[0].items);
+                });
+            }
         }
     });
 });
 
 router.post('/group/:groupId/groceries/add', function(req, res) {
-    const currentUserID = req.session.user.id;
+    const currentUserID = '104339510018991244463';
+    //const currentUserID = req.session.user.id;
     const groupID = req.params.groupId;
     const item = req.body.item;
     
