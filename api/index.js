@@ -648,5 +648,6 @@ router.all('/group/:groupId/*', function(req, res, next) {
 });
 
 router.all('/group/:groupId/groceries*', require('./groceries'));
+router.all('/group/:groupId/expenses*', require('./expenses'));
 
 module.exports = router;
