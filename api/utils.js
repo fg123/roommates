@@ -1,6 +1,6 @@
 exports.handleUnexpectedError = function(err, res) {
     res.status(500).send('An unexpected error occurred during database operation.');
-    console.err(err);
+    console.error(err);
 };
 
 exports.invalidInput = function(str) {
