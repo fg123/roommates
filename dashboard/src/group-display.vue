@@ -60,6 +60,7 @@ export default {
     },
     methods: {
         resetTabs() {
+            this.tabs = this.tabs.filter(item => item[1] !== undefined);
             if (this.tabs.length > 0) {
                 this.selectedTab = this.tabs[0];
             } else {
