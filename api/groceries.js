@@ -30,23 +30,28 @@ router.get('/group/:groupId/groceries', function(req, res) {
                 res.send([]);
             });
         } else {
-            for (let index = 0; index < groceryList[0].items.length; index++) {
-                req.db.collection(USER_DB).find({ id: groceryList[0].items[index].added_by }).toArray(function(err, user) {
-                    if (err) {
-                        utils.handleUnexpectedError(err, res);
-                        return;
-                    }
-                    groceryList[0].items[index].added_by = user[0];
-                    if (index == groceryList[0].items.length - 1) res.send(groceryList[0].items);
-                });
-            }
+            const listOfUsersToRequest = new Set(groceryList[0].items.map(item => item.added_by));
+            const usersToIDs = new Map();
+            
+            req.db.collection(USER_DB).find({ id: { $in: Array.from(listOfUsersToRequest) }}).toArray(function(err, users) {
+                if (err) {
+                    utils.handleUnexpectedError(err, res);
+                    return;
+                }
+                for (let index = 0; index < users.length; index++) {
+                    usersToIDs.set(users[index].id, users[index]);
+                }
+                for (let i = 0; i < groceryList[0].items.length; i++) {
+                    groceryList[0].items[i].added_by = usersToIDs.get(groceryList[0].items[i].added_by);
+                }
+                res.send(groceryList[0].items);
+            });
         }
     });
 });
 
 router.post('/group/:groupId/groceries/add', function(req, res) {
-    const currentUserID = '104339510018991244463';
-    //const currentUserID = req.session.user.id;
+    const currentUserID = req.session.user.id;
     const groupID = req.params.groupId;
     const item = req.body.item;
     
