@@ -45,8 +45,7 @@ router.get('/group/:groupId/groceries', function(req, res) {
 });
 
 router.post('/group/:groupId/groceries/add', function(req, res) {
-    const currentUserID = '104339510018991244463';
-    //const currentUserID = req.session.user.id;
+    const currentUserID = req.session.user.id;
     const groupID = req.params.groupId;
     const item = req.body.item;
     
