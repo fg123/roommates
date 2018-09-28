@@ -28,6 +28,7 @@ import axios from 'axios';
 
 import manageGroupTab from './tabs/manage-group';
 import groceriesTab from './tabs/groceries';
+import expensesTab from './tabs/expenses';
 
 export default {
     name: 'group-display',
@@ -40,7 +41,7 @@ export default {
             selectedTab: undefined,
             tabs: [
                 ["Overview", undefined],
-                ["Expenses", undefined],
+                ["Expenses", expensesTab],
                 ["Groceries", groceriesTab],
                 ["Chores", undefined],
                 ["Manage Group", manageGroupTab],
@@ -74,10 +75,7 @@ export default {
                 this.root.showRequestError(error);
             });
         }
-    },
-    components: {
-        manageGroupTab
-    },
+    }
 };
 </script>
 
