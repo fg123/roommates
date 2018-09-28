@@ -140,6 +140,9 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         id: uuidv4(),
         created: Date.now(),
         is_invalidated: false,
+        invalidatedBy: undefined,
+        invalidatedReason: undefined,
+        invalidatedTime: undefined
     };
 
     req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
@@ -178,8 +181,10 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 });
 
 router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionId/invalidate', function(req, res) {
+    const currentUserID = req.params.user.id;
     const expenseGroupID = req.params.expenseGroupId;
     const transactionID = req.params.transactionId;
+    const invalidateReason = req.body.reason;
 
     req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
         if (err) {
@@ -196,6 +201,9 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
         for (let index = 0; index < expenseGroup[0].transactions.length; index++) {
             if (expenseGroup[0].transactions[index].id == transactionID) {
                 expenseGroup[0].transactions[index].is_invalidated = true;
+                expenseGroup[0].transactions[index].invalidatedReason = invalidateReason;
+                expenseGroup[0].transactions[index].invalidatedTime = Date.now();
+                expenseGroup[0].transactions[index].invalidatedBy = currentUserID;
                 transactionExist = true;
                 for (let i = 0; i < expenseGroup[0].transactions[index].ower.length; i++) {
                     expenseGroup[0].owing[expenseGroup[0].transactions[index].ower[i]] -= Number(expenseGroup[0].transactions[index].value);
