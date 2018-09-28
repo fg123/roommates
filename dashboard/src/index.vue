@@ -172,6 +172,10 @@ export default {
   --mdc-theme-background: #fff!important;
 }
 
+.mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-text-field__input::placeholder {
+    color: #212121!important;
+}
+
 .drawer-header {
     text-align: center;
     padding: 16px;
