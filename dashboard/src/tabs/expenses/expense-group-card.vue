@@ -1,6 +1,6 @@
 <template>
     <mdc-card>
-            <mdc-card-primary-action>
+            <mdc-card-primary-action @click="clicked_callback">
                 <div style="padding: 1rem;">
                     <h2 class="mdc-typography--headline6 no-margin">{{ expense_group.name }}</h2>
                     <h3 class="mdc-typography--body2 no-margin">Last modified on {{ toDateString(expense_group.last_modified) }}</h3>
@@ -38,81 +38,91 @@ export default {
     props: {
         group: Object, // Roommate Group (where we can match user names)
         expense_group: Object,
+        clicked_callback: Function
     },
     data() {
         return {
             nameOwing: []
         }
     },
-    methods: {
-        toDateString: date.toDateString
-    },
     mounted() {
-        const colors = ["#5DA5DA", "#FAA43A", "#60BD68","#F17CB0",
-            "#B2912F", "#B276B2", "#DECF3F", "#F15854", "#4D4D4D"];
-        this.group.members.forEach(item => this.nameOwing.push({ id: item.id, name: item.name}));
-        for (let i = 0; i < this.nameOwing.length; i++) {
-            const item = this.nameOwing[i];
-            if (this.expense_group.owing.hasOwnProperty(item.id)) {
-                item.owing = this.expense_group.owing[item.id];
-            } else {
-                item.owing = 0;
-            }
-            item.color = colors[i % colors.length];
+        this.updateData();
+    },
+    watch: {
+        expense_group: function(newGroup) {
+            this.updateData(newGroup);
         }
-        const ctx = this.$refs.canvas.getContext('2d');
-        Chart.plugins.register({
-            beforeDraw: function(chartInstance) {
-                var ctx = chartInstance.chart.ctx;
-                ctx.fillStyle = '#212121';
-                ctx.fillRect(0, 0, chartInstance.chart.width, chartInstance.chart.height);
+    },
+    methods: {
+        toDateString: date.toDateString,
+        updateData() {
+            const colors = ["#5DA5DA", "#FAA43A", "#60BD68","#F17CB0",
+                "#B2912F", "#B276B2", "#DECF3F", "#F15854", "#4D4D4D"];
+            this.nameOwing = [];
+            this.group.members.forEach(item => this.nameOwing.push({ id: item.id, name: item.name}));
+            for (let i = 0; i < this.nameOwing.length; i++) {
+                const item = this.nameOwing[i];
+                if (this.expense_group.owing.hasOwnProperty(item.id)) {
+                    item.owing = this.expense_group.owing[item.id];
+                } else {
+                    item.owing = 0;
+                }
+                item.color = colors[i % colors.length];
             }
-        });
-        Chart.defaults.global.defaultFontColor = 'white';
-        Chart.defaults.global.defaultFontSize = '11';
-        Chart.defaults.global.defaultFontFamily = 'Roboto';
-        const chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: this.nameOwing.map(member => member.name),
-                datasets: [{
-                    data: this.nameOwing.map(member => -member.owing),
-                    backgroundColor: this.nameOwing.map(member => member.color)
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                legend: {
-                    display: false,
+            const ctx = this.$refs.canvas.getContext('2d');
+            Chart.plugins.register({
+                beforeDraw: function(chartInstance) {
+                    var ctx = chartInstance.chart.ctx;
+                    ctx.fillStyle = '#212121';
+                    ctx.fillRect(0, 0, chartInstance.chart.width, chartInstance.chart.height);
+                }
+            });
+            Chart.defaults.global.defaultFontColor = 'white';
+            Chart.defaults.global.defaultFontSize = '11';
+            Chart.defaults.global.defaultFontFamily = 'Roboto';
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: this.nameOwing.map(member => member.name),
+                    datasets: [{
+                        data: this.nameOwing.map(member => -member.owing),
+                        backgroundColor: this.nameOwing.map(member => member.color)
+                    }]
                 },
-                tooltips: {
-                    display: false
-                },
-                hover: {
-                    display: false
-                },
-                events: [],
-                layout: {
-                    padding: {
-                        top: 40,
-                        left: 10,
-                        right: 10,
-                        bottom: 10
-                    }
-                },
-                plugins: {
-                    labels: {
-                        render: 'value',
-                        fontColor: 'white',
-                        position: 'inside',
-                        precision: 2,
-                        render: function (args) {
-                            return '$' + args.value.toFixed(2);
+                options: {
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false,
+                    },
+                    tooltips: {
+                        display: false
+                    },
+                    hover: {
+                        display: false
+                    },
+                    events: [],
+                    layout: {
+                        padding: {
+                            top: 40,
+                            left: 10,
+                            right: 10,
+                            bottom: 10
+                        }
+                    },
+                    plugins: {
+                        labels: {
+                            render: 'value',
+                            fontColor: 'white',
+                            position: 'inside',
+                            precision: 2,
+                            render: function (args) {
+                                return '$' + args.value.toFixed(2);
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 }
 </script>
