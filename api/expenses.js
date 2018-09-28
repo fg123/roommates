@@ -111,7 +111,7 @@ router.get('/group/:groupId/expenses/:expenseGroupId/transactions', function(req
 router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', function(req, res) {
     const expenseGroupID = req.params.expenseGroupId;
     const owee = req.body.owee;
-    let ower = [req.body.ower];
+    let ower = req.body.ower; // takes in an array of userIDs
     const value = req.body.value;
     const description = req.body.description;
 
@@ -168,6 +168,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
                 $set:
                     {
                         owing: expenseGroup[0].owing,
+                        modified: Date.now(),
                         transactions: expenseGroup[0].transactions
                     }
             }, function(err) {
@@ -224,6 +225,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
                 $set:
                     {
                         owing: expenseGroup[0].owing,
+                        modified: Date.now(),
                         transactions: expenseGroup[0].transactions
                     }
             }, function(err) {
