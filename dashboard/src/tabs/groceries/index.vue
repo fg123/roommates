@@ -12,7 +12,7 @@
                     </mdc-list-item>
                     <mdc-list-item v-bind:key="groceryEntry.id" v-for="groceryEntry in groceryList">
                         <span>{{ groceryEntry.item }}</span>
-                        <span slot="secondary">Added by {{ groceryEntry.added_by.name }} on {{ fromTimestamp(groceryEntry.created_time) }}</span>
+                        <span slot="secondary">Added by {{ groceryEntry.added_by.name }} on {{ date.toDateString(groceryEntry.created_time) }}</span>
                         <mdc-button slot="end-detail" @click="removeEntry(groceryEntry.id)">
                             <i class="material-icons mdc-button__icon">check</i>done
                         </mdc-button>
@@ -25,6 +25,7 @@
 
 <script>
 import axios from 'axios';
+import date from '../../date.js';
 
 export default {
     name: 'groceries',
@@ -59,13 +60,6 @@ export default {
             }).catch(error => {
                 this.root.showRequestError(error);
             });
-        },
-        fromTimestamp(timestamp) {
-            const monthString = (m) => ["January", "February", "March", "April",
-                "May", "June", "July", "August", "September", "October",
-                "November", "December"][m];
-            const date = new Date(timestamp);
-            return `${monthString(date.getMonth())} ${date.getDay()}, ${date.getFullYear()}`;
         },
         reloadList() {
             axios.get(`/api/group/${this.group.id}/groceries`).then(response => {
