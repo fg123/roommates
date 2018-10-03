@@ -73,6 +73,7 @@ export default {
         reloadList() {
             axios.get(`/api/group/${this.group.id}/expenses`).then(response => {
                 this.expense_groups = response.data;
+                this.expense_groups.sort((a, b) => b.modified - a.modified);
             }).catch(error => {
                 this.root.showRequestError(error);
             });
