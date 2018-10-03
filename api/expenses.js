@@ -111,7 +111,7 @@ router.get('/group/:groupId/expenses/:expenseGroupId/transactions', function(req
 router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', function(req, res) {
     const expenseGroupID = req.params.expenseGroupId;
     const owee = req.body.owee;
-    let ower = req.body.ower; // takes in an array of userIDs
+    let owers = req.body.owers; // takes in an array of userIDs
     const value = req.body.value;
     const description = req.body.description;
 
@@ -119,7 +119,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         res.status(400).send('Invalid owee was entered.');
         return;
     }
-    if (ower.length == 0){
+    if (owers.length == 0){
         res.status(400).send('No owers were selected.');
         return;
     }
@@ -131,11 +131,11 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         res.status(400).send('Invalid description was entered.');
         return;
     }
-    
+
     const newTransaction = {
         value: value,
         owee: owee,
-        ower: ower,
+        owers: owers,
         description: description,
         id: uuidv4(),
         created: Date.now(),
@@ -154,31 +154,28 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
             res.status(404).send('This expense group does not exist.');
             return;
         }
-
-        const totalOwers = ower.length;
+        const totalOwers = owers.length;
         const currentOwing = expenseGroup[0].owing;
 
-        for (let i = 0; i < totalOwers; i++) {
-            currentOwing.set(ower[i], currentOwing.get(ower[i]) * 100);
-        }
-
+        /* Value is a string in dollars */
         currentOwing[owee] -= Number(value);
-        
-        const totalCents = 100 * Number(value);
-        const baseAmount = Math.floor(totalCents / totalOwers);
-        let centsLeft = totalCents - (baseAmount * totalOwers);
 
+        /* Split amount amongst rest */
+        const totalCents = Math.floor(Number(value) * 100);
+        const baseAmountCents = Math.floor(totalCents / totalOwers);
+        let centsLeft = totalCents - (baseAmountCents * totalOwers);
+
+        /* CentsLeft < randomOwers.length guaranteed */
+        let randomOwers = owers.slice(0);
         while (centsLeft > 0) {
-            const randomOwer = ower[Math.floor(Math.random() * totalOwers)];
-            currentOwing.set(randomOwer, currentOwing.get(randomOwer) + 1); 
+            const index = Math.floor(Math.random() * randomOwers.length);
+            currentOwing[randomOwers[index]] += 0.01;
+            randomOwers.splice(index, 1);
             centsLeft--;
         }
 
-        for (let i = 0; i < totalOwers; i++) {
-            currentOwing.set(ower[i], currentOwing.get(ower[i]) + baseAmount);
-            currentOwing.set(ower[i], currentOwing.get(ower[i]) / 100);
-        }
-        
+        owers.forEach((id) => currentOwing[id] += baseAmountCents / 100);
+
         expenseGroup[0].transactions.push(newTransaction);
 
         req.db.collection(EXPENSE_DB).updateOne(
@@ -222,16 +219,16 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
         for (let index = 0; index < expenseGroup[0].transactions.length; index++) {
             if (expenseGroup[0].transactions[index].id == transactionID) {
                 let currentTransaction = expenseGroup[0].transactions[index];
-                
+
                 currentTransaction.is_invalidated = true;
                 currentTransaction.invalidatedReason = invalidateReason;
                 currentTransaction.invalidatedTime = Date.now();
                 currentTransaction.invalidatedBy = currentUserID;
                 transactionExist = true;
-                
-                const totalOwers = currentTransaction.ower.length;
+
+                const totalOwers = currentTransaction.owers.length;
                 const currentOwing = expenseGroup[0].owing;
-                const currentOwer = currentTransaction.ower;
+                const currentOwer = currentTransaction.owers;
                 const currentTransactionValue = Number(currentTransaction.value);
 
                 for (let i = 0; i < totalOwers; i++) {
@@ -239,14 +236,14 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
                 }
 
                 currentOwing[currentTransaction.owee] += currentTransactionValue;
-                
+
                 const totalCents = 100 * currentTransactionValue;
                 const baseAmount = Math.floor(totalCents / totalOwers);
                 let centsLeft = totalCents - (baseAmount * totalOwers);
 
                 while (centsLeft > 0) {
                     const randomOwer = currentOwer[Math.floor(Math.random() * totalOwers)];
-                    currentOwing.set(randomOwer, currentOwing.get(randomOwer) - 1); 
+                    currentOwing.set(randomOwer, currentOwing.get(randomOwer) - 1);
                     centsLeft--;
                 }
 
