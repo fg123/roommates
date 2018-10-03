@@ -228,29 +228,25 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
 
                 const totalOwers = currentTransaction.owers.length;
                 const currentOwing = expenseGroup[0].owing;
-                const currentOwer = currentTransaction.owers;
-                const currentTransactionValue = Number(currentTransaction.value);
 
-                for (let i = 0; i < totalOwers; i++) {
-                    currentOwing.set(currentOwer[i], currentOwing.get(currentOwer[i]) * 100);
-                }
+                /* Value is a string in dollars */
+                currentOwing[currentTransaction.owee] += Number(currentTransaction.value);
 
-                currentOwing[currentTransaction.owee] += currentTransactionValue;
+                /* Split amount amongst rest */
+                const totalCents = Math.floor(Number(currentTransaction.value) * 100);
+                const baseAmountCents = Math.floor(totalCents / totalOwers);
+                let centsLeft = totalCents - (baseAmountCents * totalOwers);
 
-                const totalCents = 100 * currentTransactionValue;
-                const baseAmount = Math.floor(totalCents / totalOwers);
-                let centsLeft = totalCents - (baseAmount * totalOwers);
-
+                /* CentsLeft < randomOwers.length guaranteed */
+                let randomOwers = currentTransaction.owers.slice(0);
                 while (centsLeft > 0) {
-                    const randomOwer = currentOwer[Math.floor(Math.random() * totalOwers)];
-                    currentOwing.set(randomOwer, currentOwing.get(randomOwer) - 1);
+                    const index = Math.floor(Math.random() * randomOwers.length);
+                    currentOwing[randomOwers[index]] -= 0.01;
+                    randomOwers.splice(index, 1);
                     centsLeft--;
                 }
 
-                for (let i = 0; i < totalOwers; i++) {
-                    currentOwing.set(currentOwer[i], currentOwing.get(currentOwer[i]) - baseAmount);
-                    currentOwing.set(currentOwer[i], currentOwing.get(currentOwer[i]) / 100);
-                }
+                currentTransaction.owers.forEach((id) => currentOwing[id] -= baseAmountCents / 100);
 
                 break;
             }
