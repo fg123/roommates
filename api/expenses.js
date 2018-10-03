@@ -132,19 +132,6 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         return;
     }
 
-    const newTransaction = {
-        value: value,
-        owee: owee,
-        owers: owers,
-        description: description,
-        id: uuidv4(),
-        created: Date.now(),
-        is_invalidated: false,
-        invalidatedBy: undefined,
-        invalidatedReason: undefined,
-        invalidatedTime: undefined
-    };
-
     req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
         if (err) {
             utils.handleUnexpectedError(err, res);
@@ -156,8 +143,16 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         }
         const totalOwers = owers.length;
         const currentOwing = expenseGroup[0].owing;
+        let transactionOwings = new Map();
 
         /* Value is a string in dollars */
+        //currentOwing[owee] -= Number(value);
+
+        for (let index = 0; index < owers.length; index++) {
+            transactionOwings.set(owers[index], Number(0));
+        }
+
+        transactionOwings[owee] -= Number(value);
         currentOwing[owee] -= Number(value);
 
         /* Split amount amongst rest */
@@ -169,12 +164,29 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         let randomOwers = owers.slice(0);
         while (centsLeft > 0) {
             const index = Math.floor(Math.random() * randomOwers.length);
-            currentOwing[randomOwers[index]] += 0.01;
+            transactionOwings[randomOwers[index]] += 0.01;
             randomOwers.splice(index, 1);
             centsLeft--;
         }
 
-        owers.forEach((id) => currentOwing[id] += baseAmountCents / 100);
+        owers.forEach((id) => {
+            transactionOwings[id] += baseAmountCents / 100;
+            currentOwing[id] += transactionOwings[id];
+        });
+
+        const newTransaction = {
+            value: value,
+            owee: owee,
+            owers: owers,
+            owings: transactionOwings,
+            description: description,
+            id: uuidv4(),
+            created: Date.now(),
+            is_invalidated: false,
+            invalidatedBy: undefined,
+            invalidatedReason: undefined,
+            invalidatedTime: undefined
+        };
 
         expenseGroup[0].transactions.push(newTransaction);
 
@@ -219,34 +231,16 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
         for (let index = 0; index < expenseGroup[0].transactions.length; index++) {
             if (expenseGroup[0].transactions[index].id == transactionID) {
                 let currentTransaction = expenseGroup[0].transactions[index];
-
+                
                 currentTransaction.is_invalidated = true;
                 currentTransaction.invalidatedReason = invalidateReason;
                 currentTransaction.invalidatedTime = Date.now();
                 currentTransaction.invalidatedBy = currentUserID;
                 transactionExist = true;
 
-                const totalOwers = currentTransaction.owers.length;
-                const currentOwing = expenseGroup[0].owing;
-
-                /* Value is a string in dollars */
-                currentOwing[currentTransaction.owee] += Number(currentTransaction.value);
-
-                /* Split amount amongst rest */
-                const totalCents = Math.floor(Number(currentTransaction.value) * 100);
-                const baseAmountCents = Math.floor(totalCents / totalOwers);
-                let centsLeft = totalCents - (baseAmountCents * totalOwers);
-
-                /* CentsLeft < randomOwers.length guaranteed */
-                let randomOwers = currentTransaction.owers.slice(0);
-                while (centsLeft > 0) {
-                    const index = Math.floor(Math.random() * randomOwers.length);
-                    currentOwing[randomOwers[index]] -= 0.01;
-                    randomOwers.splice(index, 1);
-                    centsLeft--;
+                for (const user in currentTransaction.owings.keys()) {
+                    expenseGroup[0].owing[user] -= currentTransaction.owings[user];
                 }
-
-                currentTransaction.owers.forEach((id) => currentOwing[id] -= baseAmountCents / 100);
 
                 break;
             }
