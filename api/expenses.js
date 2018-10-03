@@ -18,10 +18,10 @@ router.get('/group/:groupId/expenses', function(req, res) {
             return;
         }
         if (expenseGroup.length < 1) {
-            res.send([]);
-        } else {
-            res.send(expenseGroup);
+            res.status(404).send('This group has no expense groups.');
+            return;
         }
+        res.send(expenseGroup);
     });
 });
 
