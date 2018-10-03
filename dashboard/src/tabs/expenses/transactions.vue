@@ -189,7 +189,7 @@ export default {
             this.listenBlocker = false;
         },
         getMemberName(id) {
-            const member = this.roommate_group.members.find((member) => true);
+            const member = this.roommate_group.members.find((member) => member.id === id);
             if (member === undefined) {
                 // TODO: Handle case where user has left the group but transactions
                 //   still remain on him. What name shall we display?
