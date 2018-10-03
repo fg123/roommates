@@ -12,7 +12,7 @@
                     </mdc-list-item>
                     <mdc-list-item v-bind:key="groceryEntry.id" v-for="groceryEntry in groceryList">
                         <span>{{ groceryEntry.item }}</span>
-                        <span slot="secondary">Added by {{ groceryEntry.added_by.name }} on {{ date.toDateString(groceryEntry.created_time) }}</span>
+                        <span slot="secondary">Added by {{ groceryEntry.added_by.name }} on {{ toDateString(groceryEntry.created_time) }}</span>
                         <mdc-button slot="end-detail" @click="removeEntry(groceryEntry.id)">
                             <i class="material-icons mdc-button__icon">check</i>done
                         </mdc-button>
@@ -44,6 +44,7 @@ export default {
         this.reloadList();
     },
     methods: {
+        toDateString: date.toDateString,
         addEntry() {
             const item = this.pendingGroceryItem;
             this.pendingGroceryItem = "";
