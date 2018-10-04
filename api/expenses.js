@@ -18,10 +18,10 @@ router.get('/group/:groupId/expenses', function(req, res) {
             return;
         }
         if (expenseGroup.length < 1) {
-            res.status(404).send('This group has no expense groups.');
-            return;
+            res.send([]);
+        } else {
+            res.send(expenseGroup);
         }
-        res.send(expenseGroup);
     });
 });
 
@@ -147,6 +147,8 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         /* This is a map of owerId: owed so that random cent splitting can be
          * kept track of */
         let owingsDelta = {};
+
+        /* Reset owers to 0, owee can be an ower too! */
         owers.forEach(ower => owingsDelta[ower] = 0);
 
         /* Value is a string in dollars */
@@ -156,6 +158,8 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         const totalCents = Math.floor(Number(value) * 100);
         const baseAmountCents = Math.floor(totalCents / totalOwers);
         let centsLeft = totalCents - (baseAmountCents * totalOwers);
+
+        owers.forEach(ower => owingsDelta[ower] += baseAmountCents / 100);
 
         /* CentsLeft < randomOwers.length guaranteed */
         let randomOwers = owers.slice(0);
@@ -206,8 +210,8 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
     });
 });
 
-router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionId/invalidate', function(req, res) {
-    const currentUserID = req.params.user.id;
+router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId/invalidate', function(req, res) {
+    const currentUserID = req.session.user.id;
     const expenseGroupID = req.params.expenseGroupId;
     const transactionID = req.params.transactionId;
     const invalidateReason = req.body.reason;
@@ -228,7 +232,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
             if (expenseGroup[0].transactions[index].id == transactionID) {
                 let currentTransaction = expenseGroup[0].transactions[index];
 
-                currentTransaction.is_invalidated = true;
+                currentTransaction.isInvalidated = true;
                 currentTransaction.invalidatedReason = invalidateReason;
                 currentTransaction.invalidatedTime = Date.now();
                 currentTransaction.invalidatedBy = currentUserID;
