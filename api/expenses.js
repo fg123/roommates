@@ -143,17 +143,14 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         }
         const totalOwers = owers.length;
         const currentOwing = expenseGroup[0].owing;
-        let transactionOwings = new Map();
+
+        /* This is a map of owerId: owed so that random cent splitting can be
+         * kept track of */
+        let owingsDelta = {};
+        owers.forEach(ower => owingsDelta[ower] = 0);
 
         /* Value is a string in dollars */
-        //currentOwing[owee] -= Number(value);
-
-        for (let index = 0; index < owers.length; index++) {
-            transactionOwings.set(owers[index], Number(0));
-        }
-
-        transactionOwings[owee] -= Number(value);
-        currentOwing[owee] -= Number(value);
+        owingsDelta[owee] -= Number(value);
 
         /* Split amount amongst rest */
         const totalCents = Math.floor(Number(value) * 100);
@@ -164,21 +161,20 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         let randomOwers = owers.slice(0);
         while (centsLeft > 0) {
             const index = Math.floor(Math.random() * randomOwers.length);
-            transactionOwings[randomOwers[index]] += 0.01;
+            owingsDelta[randomOwers[index]] += 0.01;
             randomOwers.splice(index, 1);
             centsLeft--;
         }
 
-        owers.forEach((id) => {
-            transactionOwings[id] += baseAmountCents / 100;
-            currentOwing[id] += transactionOwings[id];
+        /* Apply the delta map to the cached owings */
+        Object.keys(owingsDelta).forEach(id => {
+            currentOwing[id] += owingsDelta[id];
         });
 
         const newTransaction = {
             value: value,
             owee: owee,
-            owers: owers,
-            owings: transactionOwings,
+            owers: owingsDelta,
             description: description,
             id: uuidv4(),
             created: Date.now(),
@@ -231,17 +227,16 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/:transactionI
         for (let index = 0; index < expenseGroup[0].transactions.length; index++) {
             if (expenseGroup[0].transactions[index].id == transactionID) {
                 let currentTransaction = expenseGroup[0].transactions[index];
-                
+
                 currentTransaction.is_invalidated = true;
                 currentTransaction.invalidatedReason = invalidateReason;
                 currentTransaction.invalidatedTime = Date.now();
                 currentTransaction.invalidatedBy = currentUserID;
                 transactionExist = true;
 
-                for (const user in currentTransaction.owings.keys()) {
-                    expenseGroup[0].owing[user] -= currentTransaction.owings[user];
-                }
-
+                Object.keys(currentTransaction.owers).forEach(id => {
+                    expenseGroup[0].owing[id] -= currentTransaction.owers[id];
+                });
                 break;
             }
         }
