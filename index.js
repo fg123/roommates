@@ -23,18 +23,19 @@ app.use(expressMongoDb(process.env.MONGO_URL || 'mongodb://localhost:27017/roomm
 }));
 
 const port = process.env.PORT || 3000;
+const sessionOptions = {
+    // This means when we redeploy, users will have to sign in again, since
+    // the encryption method will be different. We could also use a single
+    // string secret instead of generating randomly.
+    secret: uuidv4(),
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production'
+    }
+};
 
-app.use(
-    session({
-        // This means when we redeploy, users will have to sign in again, since
-        // the encryption method will be different. We could also use a single
-        // string secret instead of generating randomly.
-        secret: uuidv4(),
-        resave: false,
-        saveUninitialized: true
-        //  cookie: { secure: true* }
-    })
-);
+app.use(session(sessionOptions));
 
 app.use('/login', require('./login/index'));
 app.get('/logout', function(req, res) {
