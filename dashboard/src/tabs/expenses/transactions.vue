@@ -49,28 +49,74 @@
                         <th class="mdc-data-table--sortable">Paid By</th>
                         <th class="mdc-data-table--sortable">Owed By</th>
                         <th class="mdc-data-table--sortable mdc-data-table--numeric">Cost</th>
+                        <th class="mdc-data-table--sortable"></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="transactions.length === 0">
                         <td colspan="5">No Transactions Found</td>
                     </tr>
-                    <tr v-for="transaction in filterTransactions(transactions)" :key="transaction.id">
-                        <td>{{ toDateString(transaction.created) }}</td>
-                        <td>{{ transaction.description }}</td>
-                        <td>
-                            {{ getMemberName(transaction.owee) }}
-                        </td>
-                        <td>
-                            {{ transaction.owers.map(getMemberName).join(', ') }}
-                        </td>
-                        <td class="mdc-data-table--numeric">${{ transaction.value }}</td>
-                    </tr>
+                    <template v-for="transaction in filterTransactions(transactions)">
+                        <tr :key="transaction.id"
+                            :class="{ disabled: transaction.isInvalidated }">
+                            <td>{{ toDateString(transaction.created) }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>
+                                {{ getMemberName(transaction.owee) }}
+                            </td>
+                            <td>
+                                {{ Object.keys(transaction.owers).map(getMemberName).join(', ') }}
+                            </td>
+                            <td class="mdc-data-table--numeric"
+                                :class="{ strikeThrough: transaction.isInvalidated }">
+                                ${{ transaction.value }}
+                            </td>
+                            <td class="mdc-data-table--numeric">
+                                <mdc-button
+                                    @click="openInvalidateConfirmDialog(transaction.id)"
+                                    outlined
+                                    :disabled="transaction.isInvalidated"
+                                    style="text-decoration: none!important">
+                                    {{ transaction.isInvalidated ? "Invalidated" : "Invalidate" }}
+                                </mdc-button>
+                            </td>
+                        </tr>
+                        <!-- Show Invalidated Reason -->
+                        <tr v-if="transaction.isInvalidated" :key="transaction.id" style="color: #999">
+                            <td colspan="6">
+                                This transaction was invalidated
+                                    on {{ toDateString(transaction.invalidatedTime) }}
+                                    by {{ getMemberName(transaction.invalidatedBy) }}:
+                                    "{{ transaction.invalidatedReason }}".
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
+        <mdc-dialog v-model="invalidateConfirmDialogOpen"
+                    title="Invalidate Transaction?"
+                    accept="Invalidate"
+                    cancel="Cancel"
+                    @accept="invalidateTransaction"
+                    @cancel="cancelInvalidate"
+                    @validate="invalidateConfirmDialogValidate">
+            <mdc-textfield
+                v-model="invalidateConfirmReason"
+                label="Reason for Invalidating"
+                fullwidth required />
+        </mdc-dialog>
     </div>
 </template>
+
+<style scoped>
+.strikeThrough {
+    text-decoration: line-through;
+}
+.disabled {
+    border-bottom: 0px!important;
+}
+</style>
 
 <script>
 import axios from 'axios';
@@ -96,6 +142,10 @@ export default {
             listenBlocker: false,
             checkedIds: [],
 
+            pendingInvalidateId: undefined,
+            invalidateConfirmDialogOpen: false,
+            invalidateConfirmReason: "",
+
             filterTransactions(transactions) {
                 if (this.filterField) {
                     try {
@@ -105,7 +155,7 @@ export default {
                                 const tests = [
                                     regex.test(transaction.description),
                                     regex.test(this.getMemberName(transaction.owee)),
-                                    regex.test(transaction.owers.map(this.getMemberName).join(', ')),
+                                    regex.test(Object.keys(transaction.owers).map(this.getMemberName).join(', ')),
                                     regex.test(this.toDateString(transaction.created)),
                                     regex.test(transaction.value)
                                 ];
@@ -130,11 +180,42 @@ export default {
             this.checkedIds = [];
         },
         reloadTransactions() {
-            axios.get(`/api/group/${this.group.roommate_group}/expenses/${this.group.id}/transactions`).then(response => {
+            axios.get(`/api/group/${this.group.roommate_group}` +
+                `/expenses/${this.group.id}/transactions`).then(response => {
                 this.transactions = response.data;
             }).catch(error => {
                 this.root.showRequestError(error);
             });
+        },
+        openInvalidateConfirmDialog(id) {
+            this.invalidateConfirmDialogOpen = true;
+            this.pendingInvalidateId = id;
+        },
+        invalidateTransaction() {
+            if (this.pendingInvalidateId !== undefined) {
+                axios.post(`/api/group/${this.group.roommate_group}`  +
+                    `/expenses/${this.group.id}/transaction/${this.pendingInvalidateId}/invalidate`,
+                    { reason: this.invalidateConfirmReason }
+                ).then(response => {
+                    this.reloadTransactions();
+                }).catch(error => {
+                    this.root.showRequestError(error);
+                });
+            }
+            this.pendingInvalidateId = undefined;
+            this.invalidateConfirmReason = "";
+        },
+        cancelInvalidate() {
+            this.pendingInvalidateId = undefined;
+            this.invalidateConfirmReason = "";
+            this.invalidateConfirmDialogOpen = false;
+        },
+        invalidateConfirmDialogValidate({ accept }) {
+            if (!this.invalidateConfirmReason.trim()) {
+                this.root.showError("Invalidate reason cannot be empty!");
+                return;
+            }
+            accept();
         },
         createTransactionValidate({ accept }) {
             if (!this.createTransactionExpenseTextField.trim()) {

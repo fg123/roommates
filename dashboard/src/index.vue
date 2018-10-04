@@ -357,9 +357,12 @@ div.inviteSubDrawer div.innerListItem {
 .mdc-data-table__content td {
   font-size: 14px;
 }
-.mdc-data-table__content tbody tr:hover {
-  background-color: #eee;
+.mdc-data-table__content tbody tr.disabled {
+  color: #999!important;
 }
+/* .mdc-data-table__content tbody tr:hover {
+  background-color: #eee;
+} */
 .mdc-data-table__footer {
   color: rgba(0, 0, 0, 0.54) !important;
   color: var(
