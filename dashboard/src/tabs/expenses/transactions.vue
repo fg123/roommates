@@ -82,7 +82,7 @@
                             </td>
                         </tr>
                         <!-- Show Invalidated Reason -->
-                        <tr v-if="transaction.isInvalidated" :key="transaction.id" style="color: #999">
+                        <tr v-if="transaction.isInvalidated" :key="transaction.id + 'invalidated'" style="color: #999">
                             <td colspan="6">
                                 This transaction was invalidated
                                     on {{ toDateString(transaction.invalidatedTime) }}
