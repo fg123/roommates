@@ -8,7 +8,7 @@
         "dev-serve-api": "nodemon index.js --watch api index.js",
         "dev": "concurrently --kill-others 'npm:dev-build' 'npm:dev-serve-api'",
         "build": "webpack --mode production --progress --config dashboard/webpack.config.js",
-        "start": "npm run build && node index.js"
+        "start": "npm run build && NODE_ENV=production node index.js"
     },
     "repository": {
         "type": "git",

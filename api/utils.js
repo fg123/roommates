@@ -1,5 +1,5 @@
 exports.handleUnexpectedError = function(err, res) {
-    res.status(500).send('An unexpected error occurred during database operation.');
+    res.status(500).send('An unexpected error occurred.');
     console.error(err);
 };
 
