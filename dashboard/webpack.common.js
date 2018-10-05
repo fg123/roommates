@@ -1,9 +1,9 @@
 // webpack.config.js
 const path = require('path');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const utils = require('./utils');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+
 const vueLoaderConfig = require('./vue-loader.conf');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
     resolve: {
@@ -27,14 +27,17 @@ module.exports = {
                 test: /\.js$/,
                 loader: 'babel-loader',
             },
-        ].concat(utils.styleLoaders({
-            sourceMap: false
-        }))
+        ]
     },
     plugins: [
-        // make sure to include the plugin!
         new VueLoaderPlugin(),
-        new MiniCssExtractPlugin()
+        new CopyWebpackPlugin([
+            {
+                from: path.resolve(__dirname, 'static'),
+                to: path.resolve(__dirname, 'dist'),
+                ignore: ['.*']
+            }
+        ])
     ],
     entry: path.resolve(__dirname, 'src', 'main.js'),
     output: {
