@@ -29,6 +29,7 @@ const sessionOptions = {
     // string secret instead of generating randomly.
     secret: uuidv4(),
     resave: false,
+    proxy: process.env.NODE_ENV === 'production',
     saveUninitialized: true,
     cookie: {
         secure: process.env.NODE_ENV === 'production'
