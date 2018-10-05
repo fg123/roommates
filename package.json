@@ -4,10 +4,10 @@
     "description": "Suite of applications for roommate management.",
     "main": "index.js",
     "scripts": {
-        "dev-build": "webpack --mode development --progress --watch --display-modules --config dashboard/webpack.config.js",
+        "dev-build": "webpack --mode development --progress --watch --display-modules --config dashboard/webpack.dev.js",
         "dev-serve-api": "nodemon index.js --watch api index.js",
         "dev": "concurrently --kill-others 'npm:dev-build' 'npm:dev-serve-api'",
-        "build": "webpack --mode production --progress --config dashboard/webpack.config.js",
+        "build": "webpack --mode production --progress --config dashboard/webpack.prod.js",
         "start": "npm run build && NODE_ENV=production node index.js"
     },
     "repository": {
@@ -53,8 +53,12 @@
     },
     "devDependencies": {
         "concurrently": "^4.0.1",
+        "copy-webpack-plugin": "^4.5.2",
         "eslint": "^5.5.0",
+        "html-webpack-plugin": "^3.2.0",
         "nodemon": "^1.18.4",
-        "prettier-eslint": "^8.8.2"
+        "optimize-css-assets-webpack-plugin": "^5.0.1",
+        "prettier-eslint": "^8.8.2",
+        "webpack-merge": "^4.1.4"
     }
 }

@@ -1,4 +1,5 @@
-var path = require('path');
+const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 function resolve(dir) {
     return path.join(__dirname, '..', dir);
@@ -26,7 +27,11 @@ exports.cssLoaders = function(options) {
                 })
             });
         }
-        return ['vue-style-loader'].concat(loaders);
+        if (options.extract) {
+            return [MiniCssExtractPlugin.loader].concat(loaders);
+        } else {
+            return ['vue-style-loader'].concat(loaders);
+        }
     }
 
     // https://vue-loader.vuejs.org/en/configurations/extract-css.html
