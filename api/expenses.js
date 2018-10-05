@@ -211,6 +211,11 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 });
 
 router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId/invalidate', function(req, res) {
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+    
     const currentUserID = req.session.user.id;
     const expenseGroupID = req.params.expenseGroupId;
     const transactionID = req.params.transactionId;

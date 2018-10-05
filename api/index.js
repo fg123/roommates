@@ -129,6 +129,11 @@ router.get('/logout', function(req, res) {
 });
 
 router.get('/user', function(req, res) {
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserID = req.session.user.id;
 
     req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
@@ -161,6 +166,11 @@ router.get('/user', function(req, res) {
 router.get('/user/:userId', function(req, res) {
     const userID = req.params.userId;
 
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserID = req.session.user.id;
 
     let query = [currentUserID, userID];
@@ -190,6 +200,11 @@ router.get('/user/:userId', function(req, res) {
 then returns the new group */
 
 router.post('/groups', function(req, res) {
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserID = req.session.user.id;
 
     if (utils.invalidInput(req.body.name)){
@@ -233,6 +248,11 @@ router.post('/groups', function(req, res) {
 });
 
 router.post('/group/:groupId/acceptInvite', function(req, res) {
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserEmail = req.session.user.email;
     const currentUserID = req.session.user.id;
 
@@ -305,6 +325,11 @@ router.post('/group/:groupId/acceptInvite', function(req, res) {
 });
 
 router.post('/group/:groupId/declineInvite', function(req, res) {
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserEmail = req.session.user.email;
     const currentUserID = req.session.user.id;
 
@@ -374,6 +399,11 @@ router.post('/group/:groupId/declineInvite', function(req, res) {
 router.get('/group/:groupId', function(req, res) {
     const groupID = req.params.groupId;
 
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserID = req.session.user.id;
 
     req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, result) {
@@ -402,6 +432,11 @@ router.get('/group/:groupId', function(req, res) {
 
 router.post('/group/:groupId/leave', function(req, res) {
     const groupID = req.params.groupId;
+
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
 
     const currentUserID = req.session.user.id;
 
@@ -475,6 +510,12 @@ router.post('/group/:groupId/leave', function(req, res) {
 router.post('/group/:groupId/invite', function(req, res) {
     const groupID = req.params.groupId;
     const email = req.body.email;
+
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserID = req.session.user.id;
 
     if (utils.invalidInput(email)){
@@ -574,6 +615,12 @@ router.post('/group/:groupId/invite', function(req, res) {
 router.delete('/group/:groupId/invite', function(req, res) {
     const groupID = req.params.groupId;
     const email = req.body.email;
+
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+
     const currentUserID = req.session.user.id;
 
     req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
@@ -632,6 +679,12 @@ router.delete('/group/:groupId/invite', function(req, res) {
 
 router.all('/group/:groupId/*', function(req, res, next) {
     const groupID = req.params.groupId;
+
+    if (!req.session.user){
+        res.status(500).send('Bad access.');
+        return;
+    }
+    
     const currentUserID = req.session.user.id;
 
     req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
