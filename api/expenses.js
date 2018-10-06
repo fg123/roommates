@@ -50,12 +50,6 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
                 return;
             }
 
-            let newOwing = new Map();
-
-            for (let index = 0; index < group[0].members.length; index++) {
-                newOwing.set(group[0].members[index], Number(0));
-            }
-
             const newExpenseGroup = {
                 roommate_group: groupID,
                 name: name,
@@ -63,7 +57,7 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
                 created: Date.now(),
                 modified: Date.now(),
                 transactions: [],
-                owing: newOwing
+                owing: {}
             };
 
             req.db.collection(EXPENSE_DB).insertOne(newExpenseGroup, function(err) {
@@ -172,6 +166,9 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 
         /* Apply the delta map to the cached owings */
         Object.keys(owingsDelta).forEach(id => {
+            if (!currentOwing[id]) {
+                currentOwing[id] = 0;
+            }
             currentOwing[id] += owingsDelta[id];
         });
 
@@ -215,7 +212,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId
         res.status(500).send('Bad access.');
         return;
     }
-    
+
     const currentUserID = req.session.user.id;
     const expenseGroupID = req.params.expenseGroupId;
     const transactionID = req.params.transactionId;
