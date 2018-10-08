@@ -31,15 +31,18 @@
                 <div style="width: 100%; text-align: center">
                     <mdc-caption>Your Groups</mdc-caption>
                 </div>
-                <template v-if="(user && user.groups || []).length != 0">
-                    <mdc-drawer-item
-                        start-icon="group"
-                        :key="group.id"
-                        :activated="group.id === selected_group.id"
-                        @click="selected_group = group"
-                        v-for="group in user && user.groups">
-                        {{ group.name }}
-                    </mdc-drawer-item>
+                <template v-if="(user && user.groups || []).length !== 0">
+                     <router-link tag="span"
+                        :to="`/${group.id}`"
+                        v-for="group in user && user.groups"
+                        :key="group.id">
+                        <mdc-drawer-item
+                            start-icon="group"
+                            :key="group.id + 'drawer'"
+                            :activated="isActiveGroup(group.id)">
+                            {{ group.name }}
+                        </mdc-drawer-item>
+                    </router-link>
                     <mdc-list-divider />
                 </template>
                 <mdc-drawer-item @click="openCreateGroupDialog">Create a Group</mdc-drawer-item>
@@ -51,7 +54,9 @@
                 <mdc-toolbar-row>
                     <mdc-toolbar-section align-start>
                         <mdc-toolbar-menu-icon event="toggle-drawer"></mdc-toolbar-menu-icon>
-                        <mdc-toolbar-title>{{ selected_group !== undefined ? selected_group.name : "No group selected!"}}</mdc-toolbar-title>
+                        <mdc-toolbar-title>{{
+                            getTitle($route.params.groupId)
+                        }}</mdc-toolbar-title>
                     </mdc-toolbar-section>
                     <mdc-toolbar-section align-end>
                         <mdc-toolbar-icon @click="logout" icon="exit_to_app"></mdc-toolbar-icon>
@@ -59,11 +64,9 @@
                 </mdc-toolbar-row>
             </mdc-toolbar>
 
-            <group-display v-if="selected_group !== undefined" v-bind:group="selected_group" v-bind:root="this" />
-
-            <div class="content" v-else>
-                <mdc-title>You should create a group from the sidebar!</mdc-title>
-            </div>
+            <router-view
+                v-if="canShowGroup($route.params.groupId)"
+                :root="this"></router-view>
 
             <mdc-dialog v-model="createGroupDialogOpen"
                     title="Create a Group"
@@ -81,14 +84,15 @@
 
 <script>
 import axios from 'axios';
+import VueRouter from 'vue-router';
 
+import Routes from './routes';
 import groupDisplay from './group-display.vue';
 
 export default {
     data () {
         return {
             user: undefined,
-            selected_group: undefined,
 
             createGroupDialogOpen: false,
             createGroupDialogField: "",
@@ -96,12 +100,37 @@ export default {
         }
     },
     mounted () {
+        console.log(this.$router);
+        console.log(this.$route);
         this.loadUserAndGroups();
     },
-    components: {
-        groupDisplay
-    },
+    routes: new Routes([{
+        path: '',
+        component: {
+            template: `
+                <div class="content">
+                    <mdc-title>You should create a group from the sidebar!</mdc-title>
+                </div>`
+        }
+    }, {
+        path: '/:groupId',
+        component: groupDisplay
+    }]),
     methods: {
+        canShowGroup(id) {
+            return !!(this.user && this.user.groups && id &&
+                this.user.groups.some(i => i.id === id));
+        },
+        getTitle(id) {
+            if (this.user && this.user.groups && id) {
+                const selected = this.user.groups.find(i => i.id === id);
+                if (selected) return selected.name;
+            }
+            return "No group selected!"
+        },
+        isActiveGroup(id) {
+            return this.$route.params.groupId === id;
+        },
         openCreateGroupDialog() {
             this.createGroupDialogOpen = true;
             this.createGroupDialogField = "";
@@ -137,18 +166,14 @@ export default {
         loadUserAndGroups() {
             axios.get('/api/user').then(response => {
                 this.user = response.data;
-                if (this.user.groups.length > 0) {
-                    this.selected_group = this.user.groups[0];
-                }
-                else {
-                    this.selected_group = undefined;
+                if (this.user.groups.length > 0 && !this.canShowGroup(this.$route.params.groupId)) {
+                    this.$router.push('/' + this.user.groups[0].id);
                 }
             }).catch(error => {
                 this.showRequestError(error);
             });
         },
         showError(message) {
-            console.log(message);
             this.errorSnackbar = {
                 message
             }
