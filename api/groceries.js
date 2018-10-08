@@ -3,8 +3,8 @@
  */
 
 const router = require('express').Router();
-const uuidv4 = require('uuid/v4');
 const utils = require('./utils.js');
+const shortid = require('shortid');
 
 const GROCERY_DB = 'groceries';
 const USER_DB = 'users';
@@ -72,7 +72,7 @@ router.post('/group/:groupId/groceries/add', function(req, res) {
         }
 
         const newItem = {
-            id: uuidv4(),
+            id: shortid.generate(),
             item: item,
             added_by: currentUserID,
             created_time: Date.now()
