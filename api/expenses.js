@@ -3,8 +3,8 @@
  */
 
 const router = require('express').Router();
-const uuidv4 = require('uuid/v4');
 const utils = require('./utils.js');
+const shortid = require('shortid');
 
 const GROUP_DB = 'groups';
 const EXPENSE_DB = 'expenses';
@@ -44,7 +44,7 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
             return;
         }
 
-        req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, group) {
+        req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err) {
             if (err) {
                 utils.handleUnexpectedError(err, res);
                 return;
@@ -53,7 +53,7 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
             const newExpenseGroup = {
                 roommate_group: groupID,
                 name: name,
-                id: uuidv4(),
+                id: shortid.generate(),
                 created: Date.now(),
                 modified: Date.now(),
                 transactions: [],
@@ -177,7 +177,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
             owee: owee,
             owers: owingsDelta,
             description: description,
-            id: uuidv4(),
+            id: shortid.generate(),
             created: Date.now(),
             is_invalidated: false,
             invalidatedBy: undefined,

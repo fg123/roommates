@@ -7,8 +7,8 @@ const auth = require('../auth.js');
 const router = require('express').Router();
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(clientId);
-const uuidv4 = require('uuid/v4');
 const utils = require('./utils.js');
+const shortid = require('shortid');
 
 const USER_DB = 'users';
 const GROUP_DB = 'groups';
@@ -214,7 +214,7 @@ router.post('/groups', function(req, res) {
 
     let newGroup = {
         name: req.body.name,
-        id: uuidv4(),
+        id: shortid.generate(),
         created_time: new Date(),
         members: [currentUserID],
         pending: []
