@@ -20,6 +20,9 @@ router.get('/group/:groupId/expenses', function(req, res) {
         if (expenseGroup.length < 1) {
             res.send([]);
         } else {
+            expenseGroup.forEach(group => {
+                delete group.transactions;
+            });
             res.send(expenseGroup);
         }
     });
