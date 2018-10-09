@@ -6,6 +6,7 @@ const auth = require('./auth');
 const express = require('express');
 const session = require('express-session');
 const uuidv4 = require('uuid/v4');
+const path = require('path');
 const app = express();
 const bodyParser = require('body-parser');
 const expressMongoDb = require('express-mongo-db');
@@ -58,7 +59,14 @@ app.use('/', function(req, res, next) {
     next();
 });
 
-app.use('/dashboard', express.static('./dashboard'));
+app.use('/dashboard/dist', express.static('./dashboard/dist'));
+app.use('/dashboard/dist', function(req, res) {
+    if (!auth.isLoggedIn(req)) {
+        res.redirect('/login');
+    } else {
+        res.sendFile(path.join(__dirname, './dashboard/dist/index.html'));
+    }
+});
 
 app.listen(port);
 console.log('Serving root on port ' + port);

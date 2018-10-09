@@ -2,23 +2,20 @@
     <div>
         <div class="tab-bar mdc-theme--primary-bg">
             <mdc-tab-bar class="mdc-theme--primary-bg">
-                <mdc-tab
-                    class="tab-item"
-                    v-for="tab in tabs"
-                    v-on:click="selectedTab = tab"
-                    v-bind:key="tab[0]"
-                    v-bind:active="selectedTab && selectedTab[0] == tab[0]">
-                        {{ tab[0] }}
-                </mdc-tab>
+                <router-link tag="span" v-for="tab in tabs" :to="{ name: tab.name }" :key="tab.name">
+                    <mdc-tab class="tab-item" :key="tab.name" :active="isActive(tab.name)">
+                        {{ tab.name }}
+                    </mdc-tab>
+                </router-link>
             </mdc-tab-bar>
         </div>
         <div class="content">
-            <component
-                v-if="fullGroup !== undefined && selectedTab !== undefined && selectedTab[1] !== undefined"
-                v-bind:is="selectedTab[1]"
-                v-bind:group="fullGroup"
-                v-bind:root="root"
-                v-bind:reloadGroup="reloadGroup" />
+            <router-view
+                v-if="fullGroup !== undefined"
+                :group="fullGroup"
+                :root="root"
+                :key="fullGroup.id"
+                :reloadGroup="reloadGroup"></router-view>
         </div>
     </div>
 </template>
@@ -30,46 +27,62 @@ import manageGroupTab from './tabs/manage-group';
 import groceriesTab from './tabs/groceries';
 import expensesTab from './tabs/expenses';
 
+import VueRouter from 'vue-router';
+import Routes from './routes';
+
+function Tab(name, route, component) {
+    return {
+        name, route, component
+    };
+}
+
+const tabs = [
+    // Tab("Overview", "overview", undefined),
+    Tab("Expenses", "expenses", expensesTab),
+    Tab("Groceries", "groceries", groceriesTab),
+    // Tab("Chores", "chores", undefined),
+    Tab("Manage Group", "manage", manageGroupTab),
+];
+
 export default {
     name: 'group-display',
     props: {
-        root: Object,
-        group: Object
+        root: Object
     },
     data() {
         return {
-            selectedTab: undefined,
-            tabs: [
-                ["Overview", undefined],
-                ["Expenses", expensesTab],
-                ["Groceries", groceriesTab],
-                ["Chores", undefined],
-                ["Manage Group", manageGroupTab],
-            ],
-            fullGroup: undefined
+            fullGroup: undefined,
+            tabs: tabs
         }
     },
+    routes: new Routes([
+            {
+                path: '',
+                redirect: { name: tabs[0].name }
+            }
+        ].concat(
+            tabs.map(t => {
+                return { name: t.name, path: t.route, component: t.component };
+            })
+        )
+    ),
     mounted() {
-        this.resetTabs();
         this.reloadGroup();
     },
     watch: {
-        group: function() {
-            this.resetTabs();
-            this.reloadGroup();
+        '$route': function(to, from) {
+            if (to.params.groupId !== from.params.groupId) {
+                this.fullGroup = undefined;
+                this.reloadGroup();
+            }
         }
     },
     methods: {
-        resetTabs() {
-            this.tabs = this.tabs.filter(item => item[1] !== undefined);
-            if (this.tabs.length > 0) {
-                this.selectedTab = this.tabs[0];
-            } else {
-                this.selectedTab = undefined;
-            }
+        isActive(name) {
+            return this.$route.matched.some(m => m.name === name);
         },
         reloadGroup() {
-            axios.get(`/api/group/${this.group.id}`).then(response => {
+            axios.get(`/api/group/${this.$route.params.groupId}`).then(response => {
                 this.fullGroup = response.data;
             }).catch(error => {
                 this.root.showRequestError(error);

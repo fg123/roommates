@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "dev-build": "webpack --mode development --progress --watch --display-modules --config dashboard/webpack.dev.js",
-        "dev-serve-api": "nodemon index.js --watch api index.js",
+        "dev-serve-api": "nodemon --watch index.js --watch api index.js",
         "dev": "concurrently --kill-others 'npm:dev-build' 'npm:dev-serve-api'",
         "build": "webpack --mode production --progress --config dashboard/webpack.prod.js",
         "start": "npm run build && NODE_ENV=production node index.js"
@@ -50,6 +50,7 @@
         "vue-cli": "^2.9.6",
         "vue-loader": "^15.4.2",
         "vue-mdc-adapter": "^0.18.2",
+        "vue-router": "^3.0.1",
         "vue-style-loader": "^4.1.2",
         "vue-template-compiler": "^2.5.17",
         "webpack": "^4.19.1",

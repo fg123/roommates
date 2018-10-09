@@ -1,8 +1,10 @@
 <template>
     <div class="mdc-typography">
-        <slot></slot>
+        <mdc-button outlined @click="goBack">
+            <i class="material-icons mdc-button__icon">arrow_back</i>Back
+        </mdc-button>
         <mdc-title>
-            {{ group.name }}
+            {{ groupName }}
             <mdc-button raised style="float: right" @click="createTransactionDialogOpen = true">
                 New Transaction
             </mdc-button>
@@ -126,12 +128,12 @@ export default {
     name: 'transactions',
     props: {
         root: Object,
-        roommate_group: Object,
-        group: Object
+        roommate_group: Object
     },
     data() {
         return {
-            transactions: this.group.transactions,
+            transactions: [],
+            groupName: "",
 
             createTransactionExpenseTextField: "",
             createTransactionCostTextField: "",
@@ -169,10 +171,14 @@ export default {
         }
     },
     mounted() {
+        this.reloadTransactions();
         this.selectAll();
     },
     methods: {
         toDateString: date.toDateString,
+        goBack() {
+            this.$router.push({ name: 'Expenses-list' });
+        },
         selectAll() {
             this.checkedIds = this.roommate_group.members.map((item) => item.id);
         },
@@ -180,9 +186,10 @@ export default {
             this.checkedIds = [];
         },
         reloadTransactions() {
-            axios.get(`/api/group/${this.group.roommate_group}` +
-                `/expenses/${this.group.id}/transactions`).then(response => {
-                this.transactions = response.data;
+            axios.get(`/api/group/${this.$route.params.groupId}` +
+                `/expenses/${this.$route.params.expenseGroupId}`).then(response => {
+                this.groupName = response.data.name;
+                this.transactions = response.data.transactions;
             }).catch(error => {
                 this.root.showRequestError(error);
             });
@@ -193,8 +200,9 @@ export default {
         },
         invalidateTransaction() {
             if (this.pendingInvalidateId !== undefined) {
-                axios.post(`/api/group/${this.group.roommate_group}`  +
-                    `/expenses/${this.group.id}/transaction/${this.pendingInvalidateId}/invalidate`,
+                axios.post(`/api/group/${this.$route.params.groupId}` +
+                    `/expenses/${this.$route.params.expenseGroupId}/transaction` +
+                    `/${this.pendingInvalidateId}/invalidate`,
                     { reason: this.invalidateConfirmReason }
                 ).then(response => {
                     this.reloadTransactions();
@@ -233,7 +241,7 @@ export default {
             accept();
         },
         createTransaction() {
-            axios.post(`/api/group/${this.group.roommate_group}/expenses/${this.group.id}/transactions/add`,
+            axios.post(`/api/group/${this.$route.params.groupId}/expenses/${this.$route.params.expenseGroupId}/transactions/add`,
             {
                 owee: this.root.user.id,
                 owers: this.checkedIds,
