@@ -63,7 +63,7 @@ export default {
             for (let i = 0; i < this.nameOwing.length; i++) {
                 const item = this.nameOwing[i];
                 if (this.expense_group.owing.hasOwnProperty(item.id)) {
-                    item.owing = this.expense_group.owing[item.id]/100;
+                    item.owing = this.expense_group.owing[item.id] / 100;
                 } else {
                     item.owing = 0;
                 }
