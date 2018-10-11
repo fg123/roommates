@@ -156,13 +156,13 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         const baseAmountCents = Math.floor(totalCents / totalOwers);
         let centsLeft = totalCents - (baseAmountCents * totalOwers);
 
-        owers.forEach(ower => owingsDelta[ower] += baseAmountCents / 100);
+        owers.forEach(ower => owingsDelta[ower] += baseAmountCents);
 
         /* CentsLeft < randomOwers.length guaranteed */
         let randomOwers = owers.slice(0);
         while (centsLeft > 0) {
             const index = Math.floor(Math.random() * randomOwers.length);
-            owingsDelta[randomOwers[index]] += 0.01;
+            owingsDelta[randomOwers[index]]++;
             randomOwers.splice(index, 1);
             centsLeft--;
         }
