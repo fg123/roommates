@@ -196,6 +196,7 @@ export default {
   --mdc-theme-primary: #212121!important;
   --mdc-theme-secondary: #41B883!important;
   --mdc-theme-background: #fff!important;
+  overflow-y: scroll;
 }
 
 .mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-text-field__input::placeholder {
