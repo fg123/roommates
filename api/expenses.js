@@ -148,8 +148,8 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         /* Reset owers to 0, owee can be an ower too! */
         owers.forEach(ower => owingsDelta[ower] = 0);
 
-        /* Value is a string in dollars */
-        owingsDelta[owee] -= Number(value);
+        /* Value is a string in dollars and stored as cents in database */
+        owingsDelta[owee] -= Number(value) * 100;
 
         /* Split amount amongst rest */
         const totalCents = Math.floor(Number(value) * 100);
