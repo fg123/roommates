@@ -238,6 +238,20 @@ div.inviteSubDrawer div.innerListItem {
     width: 100%;
     height: 48px
 }
+
+@media only screen and (max-width: 840px) {
+    /* For mobile: */
+    .hide-on-mobile {
+        display: none!important;
+    }
+}
+
+@media only screen and (min-width: 840px) {
+    /* For desktop: */
+    .hide-on-desktop {
+        display: none!important;
+    }
+}
 </style>
 
 <style>

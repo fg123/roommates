@@ -2,10 +2,16 @@
     <div>
         <mdc-title>
             Expense Groups
-            <mdc-button raised style="float: right" @click="createExpenseGroupDialogOpen = true">
+            <mdc-button raised style="float: right" @click="createExpenseGroupDialogOpen = true" class="hide-on-mobile">
                 New Expense Group
             </mdc-button>
         </mdc-title>
+        <mdc-fab
+            fixed
+            icon="add"
+            style="background-color: var(--mdc-theme-primary, #6200ee);"
+            @click="createExpenseGroupDialogOpen = true"
+            class="hide-on-desktop"></mdc-fab>
         <mdc-text v-if="expense_groups.length === 0">
             You have no expense groups.
         </mdc-text>
