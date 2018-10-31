@@ -8,6 +8,7 @@ export default {
         return moment.utc(utc).local().format('MMMM DD, YYYY');
     },
     toMonthYearString: function(utc) {
+        if (utc === undefined) throw 'Date provided is not defined!';
         return moment.utc(utc).local().format('MMMM YYYY');
     }
 };
