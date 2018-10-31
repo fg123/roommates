@@ -3,7 +3,7 @@
             <mdc-card-primary-action @click="clicked_callback">
                 <div style="padding: 1rem;">
                     <h2 class="mdc-typography--headline6 no-margin">{{ expense_group.name }}</h2>
-                    <h3 class="mdc-typography--body2 no-margin">Last modified on {{ toDateString(expense_group.last_modified) }}</h3>
+                    <h3 class="mdc-typography--body2 no-margin">Last modified on {{ toDateString(expense_group.modified) }}</h3>
                 </div>
                 <mdc-card-media>
                     <canvas ref="canvas"></canvas>
