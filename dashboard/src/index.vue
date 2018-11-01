@@ -49,7 +49,12 @@
             </mdc-drawer-list>
         </mdc-drawer>
 
-        <main>
+        <main style="position: relative">
+            <mdc-linear-progress
+                indeterminate
+                v-if="requestsLongerThanTime !== 0"
+                style="position: absolute; left: 0; top: 0; z-index: 1;"
+            />
             <mdc-toolbar>
                 <mdc-toolbar-row>
                     <mdc-toolbar-section align-start>
@@ -63,7 +68,6 @@
                     </mdc-toolbar-section>
                 </mdc-toolbar-row>
             </mdc-toolbar>
-
             <router-view
                 v-if="canShowGroup($route.params.groupId)"
                 :root="this"></router-view>
@@ -97,12 +101,40 @@ export default {
             createGroupDialogOpen: false,
             createGroupDialogField: "",
             errorSnackbar: undefined,
+
+            pendingRequests: {},
+            requestsLongerThanTime: 0
         }
     },
     mounted () {
         console.log(this.$router);
         console.log(this.$route);
         this.loadUserAndGroups();
+
+        axios.interceptors.request.use((config) => {
+            const time = Date.now();
+            /* Request Time is used to identify the request */
+            config.requestTime = time;
+
+            /* Add to requests longer than 100ms */
+            this.pendingRequests[time] = setTimeout(() => {
+                this.requestsLongerThanTime += 1;
+                this.pendingRequests[time] = undefined;
+            }, 100);
+
+            return config;
+        });
+
+        axios.interceptors.response.use((response) => {
+            const pendingTimeout = this.pendingRequests[response.config.requestTime];
+            if (pendingTimeout) {
+                // Less than 50ms, not cleared
+                clearTimeout(pendingTimeout);
+            } else {
+                this.requestsLongerThanTime -= 1;
+            }
+            return response;
+        });
     },
     routes: new Routes([{
         path: '',
