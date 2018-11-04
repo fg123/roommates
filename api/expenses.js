@@ -112,11 +112,6 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
     const value = req.body.value;
     const description = req.body.description;
     
-    console.log('owee:');
-    console.log(owee);
-    console.log('owers:');
-    console.log(owers);
-
     if (utils.invalidInput(owee)){
         res.status(400).send('Invalid owee was entered.');
         return;
