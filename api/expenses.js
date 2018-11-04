@@ -111,7 +111,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
     let owers = req.body.owers; // takes in an array of userIDs
     const value = req.body.value;
     const description = req.body.description;
-
+    
     if (utils.invalidInput(owee)){
         res.status(400).send('Invalid owee was entered.');
         return;
@@ -147,13 +147,14 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 
         /* Reset owers to 0, owee can be an ower too! */
         owers.forEach(ower => owingsDelta[ower] = 0);
-
+        
         /* Value is a string in dollars and stored as cents in database */
-        owingsDelta[owee] -= Number(value) * 100;
-
+        owingsDelta[owee] = -(Number(value) * 100);
+        
         /* Split amount amongst rest */
         const totalCents = Math.floor(Number(value) * 100);
         const baseAmountCents = Math.floor(totalCents / totalOwers);
+        
         let centsLeft = totalCents - (baseAmountCents * totalOwers);
 
         owers.forEach(ower => owingsDelta[ower] += baseAmountCents);
@@ -169,7 +170,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 
         /* Apply the delta map to the cached owings */
         Object.keys(owingsDelta).forEach(id => {
-            if (!currentOwing[id]) {
+            if (!currentOwing[id]) { 
                 currentOwing[id] = 0;
             }
             currentOwing[id] += owingsDelta[id];
@@ -183,9 +184,9 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
             id: shortid.generate(),
             created: Date.now(),
             is_invalidated: false,
-            invalidatedBy: undefined,
-            invalidatedReason: undefined,
-            invalidatedTime: undefined
+            invalidatedBy: null,
+            invalidatedReason: null,
+            invalidatedTime: null
         };
 
         expenseGroup[0].transactions.push(newTransaction);
