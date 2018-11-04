@@ -67,7 +67,10 @@
                                 {{ getMemberName(transaction.owee) }}
                             </td>
                             <td>
-                                {{ Object.keys(transaction.owers).map(getMemberName).join(', ') }}
+                                {{ Object.keys(transaction.owers)
+                                    .filter(member => transaction.owers[member] > 0)
+                                    .map(getMemberName)
+                                    .join(', ') }}
                             </td>
                             <td class="mdc-data-table--numeric"
                                 :class="{ strikeThrough: transaction.isInvalidated }">
