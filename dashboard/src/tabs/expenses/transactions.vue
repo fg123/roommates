@@ -67,10 +67,7 @@
                                 {{ getMemberName(transaction.owee) }}
                             </td>
                             <td>
-                                {{ Object.keys(transaction.owers)
-                                    .filter(member => transaction.owers[member] > 0)
-                                    .map(getMemberName)
-                                    .join(', ') }}
+                                {{ getOwersString(transaction) }}
                             </td>
                             <td class="mdc-data-table--numeric"
                                 :class="{ strikeThrough: transaction.isInvalidated }">
@@ -187,6 +184,23 @@ export default {
         },
         deselectAll() {
             this.checkedIds = [];
+        },
+        getOwersString(transaction) {
+            /* transaction.owers is a delta mapping, first we calculate if the
+             * owee is also in the map, if so we need to correct for the amount
+             * he/she gets back */
+            const owersMap = JSON.parse(JSON.stringify(transaction.owers));
+            if (transaction.owee in owersMap) {
+                const valueInCents = Number(transaction.value) * 100;
+                owersMap[transaction.owee] += valueInCents;
+            }
+
+            return Object.keys(owersMap)
+                .filter(member => owersMap[member] > 0)
+                .map(memberId =>
+                    `${this.getMemberName(memberId)} ($${
+                        (owersMap[memberId] / 100).toFixed(2)})`)
+                .join(', ');
         },
         reloadTransactions() {
             axios.get(`/api/group/${this.$route.params.groupId}` +
