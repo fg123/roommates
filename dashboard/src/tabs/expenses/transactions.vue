@@ -5,10 +5,18 @@
         </mdc-button>
         <mdc-title>
             {{ groupName }}
-            <mdc-button raised style="float: right" @click="createTransactionDialogOpen = true">
+            <mdc-button raised style="float: right"
+                @click="createTransactionDialogOpen = true"
+                class="hide-on-mobile">
                 New Transaction
             </mdc-button>
         </mdc-title>
+        <mdc-fab
+            fixed
+            icon="add"
+            style="background-color: var(--mdc-theme-primary, #6200ee);"
+            @click="createTransactionDialogOpen = true"
+            class="hide-on-desktop"></mdc-fab>
         <mdc-dialog v-model="createTransactionDialogOpen"
                     title="New Transaction"
                     accept="Create"
@@ -42,16 +50,19 @@
             </div>
         </mdc-dialog>
         <mdc-textfield outline label="Filter" style="width: 100%" v-model="filterField" />
-        <div class="mdc-data-table">
-            <table class="mdc-data-table__content">
+        <div style="width: 100%">
+        <mdc-data-table>
+            <table>
                 <thead>
                     <tr>
-                        <th class="mdc-data-table--sortable">Date</th>
-                        <th class="mdc-data-table--sortable">Expense</th>
-                        <th class="mdc-data-table--sortable">Paid By</th>
-                        <th class="mdc-data-table--sortable">Owed By</th>
-                        <th class="mdc-data-table--sortable mdc-data-table--numeric">Cost</th>
-                        <th class="mdc-data-table--sortable"></th>
+                        <th>Date</th>
+                        <th>Expense</th>
+                        <th>Paid By</th>
+                        <th>Owed By</th>
+                        <th class="right">Cost</th>
+                        <th style="width: 150px">
+                            <!--Invalidated Column-->
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -66,14 +77,12 @@
                             <td>
                                 {{ getMemberName(transaction.owee) }}
                             </td>
-                            <td>
-                                {{ getOwersString(transaction) }}
-                            </td>
-                            <td class="mdc-data-table--numeric"
+                            <td v-html="getOwersString(transaction)"></td>
+                            <td class="right"
                                 :class="{ strikeThrough: transaction.isInvalidated }">
                                 ${{ transaction.value }}
                             </td>
-                            <td class="mdc-data-table--numeric">
+                            <td class="right">
                                 <mdc-button
                                     @click="openInvalidateConfirmDialog(transaction.id)"
                                     outlined
@@ -95,6 +104,7 @@
                     </template>
                 </tbody>
             </table>
+        </mdc-data-table>
         </div>
         <mdc-dialog v-model="invalidateConfirmDialogOpen"
                     title="Invalidate Transaction?"
@@ -123,6 +133,7 @@
 <script>
 import axios from 'axios';
 import date from '../../date';
+import dataTable from '../../data-table.vue';
 
 export default {
     name: 'transactions',
@@ -170,6 +181,9 @@ export default {
             }
         }
     },
+    components: {
+        'mdc-data-table': dataTable
+    },
     mounted() {
         this.reloadTransactions();
         this.selectAll();
@@ -200,7 +214,7 @@ export default {
                 .map(memberId =>
                     `${this.getMemberName(memberId)} ($${
                         (owersMap[memberId] / 100).toFixed(2)})`)
-                .join(', ');
+                .join('<br>');
         },
         reloadTransactions() {
             axios.get(`/api/group/${this.$route.params.groupId}` +

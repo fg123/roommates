@@ -1,30 +1,30 @@
 <template>
     <mdc-card>
-            <mdc-card-primary-action @click="clicked_callback">
-                <div style="padding: 1rem;">
-                    <h2 class="mdc-typography--headline6 no-margin">{{ expense_group.name }}</h2>
-                    <h3 class="mdc-typography--body2 no-margin">Last modified on {{ toDateString(expense_group.modified) }}</h3>
-                </div>
-                <mdc-card-media>
-                    <canvas ref="canvas"></canvas>
-                </mdc-card-media>
-                <mdc-card-text>
-                    <mdc-list dense>
-                        <mdc-list-item v-for="member in nameOwing" :key="member.id">
-                            <i slot="start-detail" class="material-icons" :style="'color: ' + member.color">brightness_1</i>
-                            <mdc-text>{{ member.name }}</mdc-text>
-                            <mdc-chip-set slot="end-detail">
-                                <mdc-chip
-                                    :class="{ 'chip-red': member.owing > 0,
-                                            'chip-green': member.owing < 0 }">
-                                        ${{ Math.abs(member.owing).toFixed(2) }}
-                                </mdc-chip>
-                            </mdc-chip-set>
-                        </mdc-list-item>
-                    </mdc-list>
-                </mdc-card-text>
-            </mdc-card-primary-action>
-        </mdc-card>
+        <mdc-card-primary-action @click="clicked_callback">
+            <div style="padding: 1rem;">
+                <h2 class="mdc-typography--headline6 no-margin">{{ expense_group.name }}</h2>
+                <h3 class="mdc-typography--body2 no-margin">Last modified on {{ toDateString(expense_group.modified) }}</h3>
+            </div>
+            <mdc-card-media>
+                <canvas ref="canvas"></canvas>
+            </mdc-card-media>
+            <mdc-card-text>
+                <mdc-list dense>
+                    <mdc-list-item v-for="member in nameOwing" :key="member.id">
+                        <i slot="start-detail" class="material-icons" :style="'color: ' + member.color">brightness_1</i>
+                        <mdc-text>{{ member.name }}</mdc-text>
+                        <mdc-chip-set slot="end-detail">
+                            <mdc-chip
+                                :class="{ 'chip-red': member.owing > 0,
+                                        'chip-green': member.owing < 0 }">
+                                    ${{ Math.abs(member.owing).toFixed(2) }}
+                            </mdc-chip>
+                        </mdc-chip-set>
+                    </mdc-list-item>
+                </mdc-list>
+            </mdc-card-text>
+        </mdc-card-primary-action>
+    </mdc-card>
 </template>
 
 <script>
