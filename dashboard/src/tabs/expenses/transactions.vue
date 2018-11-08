@@ -5,10 +5,18 @@
         </mdc-button>
         <mdc-title>
             {{ groupName }}
-            <mdc-button raised style="float: right" @click="createTransactionDialogOpen = true">
+            <mdc-button raised style="float: right"
+                @click="createTransactionDialogOpen = true"
+                class="hide-on-mobile">
                 New Transaction
             </mdc-button>
         </mdc-title>
+        <mdc-fab
+            fixed
+            icon="add"
+            style="background-color: var(--mdc-theme-primary, #6200ee);"
+            @click="createTransactionDialogOpen = true"
+            class="hide-on-desktop"></mdc-fab>
         <mdc-dialog v-model="createTransactionDialogOpen"
                     title="New Transaction"
                     accept="Create"
