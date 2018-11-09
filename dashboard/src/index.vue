@@ -63,7 +63,7 @@
                             getTitle($route.params.groupId)
                         }}</mdc-toolbar-title>
                     </mdc-toolbar-section>
-                    <mdc-toolbar-section align-end>
+                    <mdc-toolbar-section align-end style="flex-grow: 0; min-width: auto;">
                         <mdc-toolbar-icon @click="logout" icon="exit_to_app"></mdc-toolbar-icon>
                     </mdc-toolbar-section>
                 </mdc-toolbar-row>
