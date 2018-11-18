@@ -10,18 +10,31 @@ const path = require('path');
 const app = express();
 const bodyParser = require('body-parser');
 const expressMongoDb = require('express-mongo-db');
+const MongoClient = require('mongodb').MongoClient;
 
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/roommate';
 const USER_DB = 'users';
 const GROUP_DB = 'groups';
 const GROCERY_DB = 'groceries';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(expressMongoDb(process.env.MONGO_URL || 'mongodb://localhost:27017/roommate', { useNewUrlParser: true }, function(err, db) {
-    db.collection(USER_DB).createIndex('id');
-    db.collection(GROUP_DB).createIndex('id');
-    db.collection(GROCERY_DB).createIndex('id');
-}));
+app.use(expressMongoDb(MONGO_URL, { useNewUrlParser: true }));
+
+MongoClient.connect(MONGO_URL, { useNewUrlParser: true }, function(err, client) {
+    console.log('Creating indices...');
+    function callback(err, index) {
+        if (err) {
+            console.log('Error creating index: ' + err);
+            return;
+        }
+        console.log('Index created!');
+    }
+    const db = client.db('roommate');
+    db.collection(USER_DB).createIndex('id', callback);
+    db.collection(GROUP_DB).createIndex('id', callback);
+    db.collection(GROCERY_DB).createIndex('id', callback);
+});
 
 const port = process.env.PORT || 3000;
 const sessionOptions = {
