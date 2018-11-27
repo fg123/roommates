@@ -129,7 +129,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         return;
     }
     if (Number(value) <= 0) {
-        res.status(400).send('Cannot enter $0 or negative transation amount.');
+        res.status(400).send('Cannot enter $0 or negative transaction amount.');
     }
 
     req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
