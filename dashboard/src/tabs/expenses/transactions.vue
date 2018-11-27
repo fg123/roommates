@@ -33,6 +33,7 @@
                 @blur="formatCost"
                 @focus="selectCostTextField"
                 type="number"
+                step="0.01"
                 ref="costBox" />
             <mdc-text>Select group members who owe this amount
                     (the amount will be split evenly):</mdc-text>
@@ -281,8 +282,8 @@ export default {
                 this.root.showError("You must enter a cost!");
                 return;
             }
-            if (parseFloat(this.createTransactionCostTextField) === 0) {
-                this.root.showError("You must enter a non-zero cost!");
+            if (parseFloat(this.createTransactionCostTextField) <= 0) {
+                this.root.showError("You must enter a non-negative, non-zero cost!");
                 return;
             }
             if (this.checkedIds.length === 0) {
@@ -309,7 +310,7 @@ export default {
         },
         formatCost() {
             /* Strip non digit, comma, or periods! */
-            const value = this.createTransactionCostTextField.replace(/[^\d\.\,]/g, '');
+            const value = this.createTransactionCostTextField.replace(/[^\d\.,-]/g, '');
             let numerical = +value;
             if (isNaN(numerical)) {
                 numerical = 0;

@@ -273,10 +273,6 @@ img.rounded {
     display: inline-block;
 }
 
-.mdc-dialog__surface {
-    width: 50%!important;
-}
-
 div.inviteSubDrawer a.mdc-drawer-item {
     flex-direction: column;
     height: auto;
