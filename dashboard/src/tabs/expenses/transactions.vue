@@ -24,17 +24,15 @@
                     @accept="createTransaction"
                     @cancel="createTransactionDialogOpen = false"
                     @validate="createTransactionValidate">
-            <mdc-textfield v-model="createTransactionExpenseTextField" label="Expense Description" fullwidth box required />
+            <mdc-textfield v-model="createTransactionExpenseTextField" label="Expense Description" fullwidth box />
             <mdc-textfield
+                class="costTextField"
                 v-model="createTransactionCostTextField"
                 box
                 leading-icon="attach_money"
-                @focus="formatCost"
                 @blur="formatCost"
-                @change="formatCost"
-                @keydown="keyDown"
-                required
-                dir="rtl"
+                @focus="selectCostTextField"
+                type="number"
                 ref="costBox" />
             <mdc-text>Select group members who owe this amount
                     (the amount will be split evenly):</mdc-text>
@@ -130,6 +128,25 @@
 }
 </style>
 
+<style>
+
+.costTextField input {
+    /* Push number upwards to line up with dollar icon */
+    padding-bottom: 15px!important;
+    font-weight: 500;
+
+
+    /* Hide spinners for number inputs. */
+    -moz-appearance:textfield;
+}
+
+.costTextField input::-webkit-outer-spin-button,
+.costTextField input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+</style>
+
 <script>
 import axios from 'axios';
 import date from '../../date';
@@ -152,7 +169,6 @@ export default {
 
             filterField: "",
 
-            listenBlocker: false,
             checkedIds: [],
 
             pendingInvalidateId: undefined,
@@ -265,6 +281,10 @@ export default {
                 this.root.showError("You must enter a cost!");
                 return;
             }
+            if (parseFloat(this.createTransactionCostTextField) === 0) {
+                this.root.showError("You must enter a non-zero cost!");
+                return;
+            }
             if (this.checkedIds.length === 0) {
                 this.root.showError("The cost must be owed by at least one person!");
                 return;
@@ -288,25 +308,16 @@ export default {
             });
         },
         formatCost() {
-           if (this.listenBlocker) return;
-            const val = +this.createTransactionCostTextField.replace(/\D/g,'');
-            this.createTransactionCostTextField = (+val / 100).toFixed(2);
-        },
-        keyDown(event) {
-            if (event.key.length === 1 && !event.ctrlKey && !event.altKey) {
-                this.createTransactionCostTextField += event.key;
-                event.preventDefault();
-            } else if (event.key === "Backspace") {
-                this.createTransactionCostTextField = this.createTransactionCostTextField.slice(0, -1);
-                event.preventDefault();
+            /* Strip non digit, comma, or periods! */
+            const value = this.createTransactionCostTextField.replace(/[^\d\.\,]/g, '');
+            let numerical = +value;
+            if (isNaN(numerical)) {
+                numerical = 0;
             }
-            this.listenBlocker = true;
-            this.$refs.costBox.blur();
-            this.listenBlocker = false;
-            this.formatCost();
-            this.listenBlocker = true;
-            this.$refs.costBox.focus();
-            this.listenBlocker = false;
+            this.createTransactionCostTextField = numerical.toFixed(2);
+        },
+        selectCostTextField() {
+            this.$refs.costBox.$el.querySelector('input').select();
         },
         getMemberName(id) {
             const member = this.roommate_group.members.find((member) => member.id === id);
@@ -320,4 +331,3 @@ export default {
     }
 }
 </script>
-
