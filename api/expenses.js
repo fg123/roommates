@@ -111,22 +111,25 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
     let owers = req.body.owers; // takes in an array of userIDs
     const value = req.body.value;
     const description = req.body.description;
-    
-    if (utils.invalidInput(owee)){
+
+    if (utils.invalidInput(owee)) {
         res.status(400).send('Invalid owee was entered.');
         return;
     }
-    if (owers.length == 0){
+    if (owers.length == 0) {
         res.status(400).send('No owers were selected.');
         return;
     }
-    if (utils.invalidInput(value)){
+    if (utils.invalidInput(value)) {
         res.status(400).send('Invalid value was entered.');
         return;
     }
-    if (utils.invalidInput(description)){
+    if (utils.invalidInput(description)) {
         res.status(400).send('Invalid description was entered.');
         return;
+    }
+    if (Number(value) <= 0) {
+        res.status(400).send('Cannot enter $0 or negative transation amount.');
     }
 
     req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
