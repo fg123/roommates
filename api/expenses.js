@@ -130,6 +130,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
     }
     if (Number(value) <= 0) {
         res.status(400).send('Cannot enter $0 or negative transaction amount.');
+        return;
     }
 
     req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
@@ -150,14 +151,14 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 
         /* Reset owers to 0, owee can be an ower too! */
         owers.forEach(ower => owingsDelta[ower] = 0);
-        
+
         /* Value is a string in dollars and stored as cents in database */
         owingsDelta[owee] = -(Number(value) * 100);
-        
+
         /* Split amount amongst rest */
         const totalCents = Math.floor(Number(value) * 100);
         const baseAmountCents = Math.floor(totalCents / totalOwers);
-        
+
         let centsLeft = totalCents - (baseAmountCents * totalOwers);
 
         owers.forEach(ower => owingsDelta[ower] += baseAmountCents);
@@ -173,7 +174,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
 
         /* Apply the delta map to the cached owings */
         Object.keys(owingsDelta).forEach(id => {
-            if (!currentOwing[id]) { 
+            if (!currentOwing[id]) {
                 currentOwing[id] = 0;
             }
             currentOwing[id] += owingsDelta[id];
