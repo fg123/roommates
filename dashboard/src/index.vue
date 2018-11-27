@@ -304,4 +304,9 @@ div.inviteSubDrawer div.innerListItem {
         display: none!important;
     }
 }
+
+div.mdc-snackbar {
+    /* Force snackbar to show above dialogs too. */
+    z-index: 10!important;
+}
 </style>
