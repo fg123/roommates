@@ -111,6 +111,13 @@ export default {
 }
 
 .content {
-  padding: 24px 48px;
+    padding: 24px 48px;
+}
+
+@media only screen and (max-width: 840px) {
+    /* For mobile: */
+    .content {
+        padding: 16px 8px;
+    }
 }
 </style>
