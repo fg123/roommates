@@ -68,7 +68,16 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
                     utils.handleUnexpectedError(err, res);
                     return;
                 }
-                res.send('ok');
+
+                const currentDate = new Date();
+                
+                req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
+                    if (err) {
+                        utils.handleUnexpectedError(err, res);
+                        return;
+                    }
+                    res.send('ok');
+                });
             });
         });
     });
@@ -106,6 +115,7 @@ router.get('/group/:groupId/expenses/:expenseGroupId/transactions', function(req
 });
 
 router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', function(req, res) {
+    const groupID = req.params.groupId;
     const expenseGroupID = req.params.expenseGroupId;
     const owee = req.body.owee;
     let owers = req.body.owers; // takes in an array of userIDs
@@ -210,7 +220,16 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
                     utils.handleUnexpectedError(err, res);
                     return;
                 }
-                res.send(expenseGroup[0].transactions);
+
+                const currentDate = new Date();
+                
+                req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
+                    if (err) {
+                        utils.handleUnexpectedError(err, res);
+                        return;
+                    }
+                    res.send(expenseGroup[0].transactions);
+                });
             });
     });
 });
@@ -221,6 +240,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId
         return;
     }
 
+    const groupID = req.params.groupId;
     const currentUserID = req.session.user.id;
     const expenseGroupID = req.params.expenseGroupId;
     const transactionID = req.params.transactionId;
@@ -275,7 +295,16 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId
                     utils.handleUnexpectedError(err, res);
                     return;
                 }
-                res.send('ok');
+
+                const currentDate = new Date();
+                
+                req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
+                    if (err) {
+                        utils.handleUnexpectedError(err, res);
+                        return;
+                    }
+                    res.send('ok');
+                });
             });
     });
 });

@@ -212,10 +212,13 @@ router.post('/groups', function(req, res) {
         return;
     }
 
+    const currentDate = new Date();
+
     let newGroup = {
         name: req.body.name,
         id: shortid.generate(),
-        created_time: new Date(),
+        created_time: currentDate,
+        last_modified: currentDate,
         members: [currentUserID],
         pending: []
     };
@@ -317,7 +320,15 @@ router.post('/group/:groupId/acceptInvite', function(req, res) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-                            res.status(200).send('ok');
+                            const currentDate = new Date();
+                
+                            req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
+                                if (err) {
+                                    utils.handleUnexpectedError(err, res);
+                                    return;
+                                }
+                                res.status(200).send('ok');
+                            });    
                         });
                 });
             });
@@ -389,7 +400,16 @@ router.post('/group/:groupId/declineInvite', function(req, res) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-                            res.status(200).send('ok');
+
+                            const currentDate = new Date();
+                
+                            req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
+                                if (err) {
+                                    utils.handleUnexpectedError(err, res);
+                                    return;
+                                }
+                                res.status(200).send('ok');
+                            });                            
                         });
                 });
             });
@@ -460,12 +480,16 @@ router.post('/group/:groupId/leave', function(req, res) {
         }
 
         const newMembers = result.members.filter(item => item !== currentUserID);
+
+        const currentDate = new Date();
+
         req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
             }, {
                 $set:
                 {
+                    'last_modifed': currentDate,
                     'members': newMembers
                 }
             }, function(err) {
@@ -500,7 +524,7 @@ router.post('/group/:groupId/leave', function(req, res) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-                            res.status(200).send('ok');
+                            res.status(200).send('ok');    
                         });
                 });
             });
@@ -565,11 +589,14 @@ router.post('/group/:groupId/invite', function(req, res) {
                     }
                     group[0].pending.push(email);
 
+                    const currentDate = new Date();
+
                     req.db.collection(GROUP_DB).updateOne({
                         id: groupID
                     }, {
                         $set:
                             {
+                                'last_modified': currentDate,
                                 'pending': group[0].pending
                             }
                     }, function(err) {
@@ -577,7 +604,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                             utils.handleUnexpectedError(err, res);
                             return;
                         }
-                        res.status(200).send('ok');
+                        res.status(200).send('ok');    
                     });
                 });
             } else {
@@ -589,14 +616,16 @@ router.post('/group/:groupId/invite', function(req, res) {
                         utils.handleUnexpectedError(err, res);
                         return;
                     }
-
                     group[0].pending.push(email);
+
+                    const currentDate = new Date();
 
                     req.db.collection(GROUP_DB).updateOne({
                         id: groupID
                     }, {
                         $set:
                         {
+                            'last_modified': currentDate,
                             'pending': group[0].pending
                         }
                     }, function(err) {
@@ -604,7 +633,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                             utils.handleUnexpectedError(err, res);
                             return;
                         }
-                        res.status(200).send('ok');
+                        res.status(200).send('ok');    
                     });
                 });
             }
@@ -657,12 +686,14 @@ router.delete('/group/:groupId/invite', function(req, res) {
                     return;
                 }
                 const newPending = group[0].pending.filter(item => item !== email);
+                const currentDate = new Date();
 
                 req.db.collection(GROUP_DB).updateOne({
                     id: groupID
                 }, {
                     $set:
                     {
+                        'last_modified': currentDate,
                         'pending': newPending
                     }
                 }, function(err) {
@@ -670,7 +701,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                         utils.handleUnexpectedError(err, res);
                         return;
                     }
-                    res.status(200).send('ok');
+                    res.status(200).send('ok');    
                 });
             });
         });
