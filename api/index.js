@@ -280,12 +280,14 @@ router.post('/group/:groupId/acceptInvite', function(req, res) {
         }
         const newPending = result.pending.filter(item => item !== currentUserEmail);
         result.members.push(currentUserID);
+        const currentDate = new Date();
         req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
             }, {
                 $set:
                 {
+                    'last_modified': currentDate,
                     'members': result.members,
                     'pending': newPending
                 }
@@ -320,15 +322,7 @@ router.post('/group/:groupId/acceptInvite', function(req, res) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-                            const currentDate = new Date();
-                
-                            req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
-                                if (err) {
-                                    utils.handleUnexpectedError(err, res);
-                                    return;
-                                }
-                                res.status(200).send('ok');
-                            });    
+                            res.status(200).send('ok');
                         });
                 });
             });
@@ -363,12 +357,15 @@ router.post('/group/:groupId/declineInvite', function(req, res) {
             return;
         }
         const newPending = result.pending.filter(item => item !== currentUserEmail);
+        const currentDate = new Date();
+
         req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
             }, {
                 $set:
                 {
+                    'last_modified': currentDate,
                     'pending': newPending
                 }
             }, function (err) {
@@ -400,16 +397,7 @@ router.post('/group/:groupId/declineInvite', function(req, res) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-
-                            const currentDate = new Date();
-                
-                            req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
-                                if (err) {
-                                    utils.handleUnexpectedError(err, res);
-                                    return;
-                                }
-                                res.status(200).send('ok');
-                            });                            
+                            res.status(200).send('ok');
                         });
                 });
             });
@@ -524,7 +512,7 @@ router.post('/group/:groupId/leave', function(req, res) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-                            res.status(200).send('ok');    
+                            res.status(200).send('ok');
                         });
                 });
             });
@@ -604,7 +592,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                             utils.handleUnexpectedError(err, res);
                             return;
                         }
-                        res.status(200).send('ok');    
+                        res.status(200).send('ok');
                     });
                 });
             } else {
@@ -633,7 +621,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                             utils.handleUnexpectedError(err, res);
                             return;
                         }
-                        res.status(200).send('ok');    
+                        res.status(200).send('ok');
                     });
                 });
             }
@@ -701,7 +689,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                         utils.handleUnexpectedError(err, res);
                         return;
                     }
-                    res.status(200).send('ok');    
+                    res.status(200).send('ok');
                 });
             });
         });
