@@ -69,7 +69,7 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
                     return;
                 }
 
-                const currentDate = new Date();
+                const currentDate = Date.now();
                 
                 req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
                     if (err) {
@@ -221,7 +221,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
                     return;
                 }
 
-                const currentDate = new Date();
+                const currentDate = Date.now();
                 
                 req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
                     if (err) {
@@ -296,7 +296,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId
                     return;
                 }
 
-                const currentDate = new Date();
+                const currentDate = Date.now();
                 
                 req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
                     if (err) {

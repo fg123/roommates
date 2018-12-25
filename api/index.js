@@ -212,7 +212,7 @@ router.post('/groups', function(req, res) {
         return;
     }
 
-    const currentDate = new Date();
+    const currentDate = Date.now();
 
     let newGroup = {
         name: req.body.name,
@@ -280,7 +280,7 @@ router.post('/group/:groupId/acceptInvite', function(req, res) {
         }
         const newPending = result.pending.filter(item => item !== currentUserEmail);
         result.members.push(currentUserID);
-        const currentDate = new Date();
+        const currentDate = Date.now();
         req.db.collection(GROUP_DB).updateOne(
             {
                 id: groupID
@@ -357,7 +357,7 @@ router.post('/group/:groupId/declineInvite', function(req, res) {
             return;
         }
         const newPending = result.pending.filter(item => item !== currentUserEmail);
-        const currentDate = new Date();
+        const currentDate = Date.now();
 
         req.db.collection(GROUP_DB).updateOne(
             {
@@ -469,7 +469,7 @@ router.post('/group/:groupId/leave', function(req, res) {
 
         const newMembers = result.members.filter(item => item !== currentUserID);
 
-        const currentDate = new Date();
+        const currentDate = Date.now();
 
         req.db.collection(GROUP_DB).updateOne(
             {
@@ -577,7 +577,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                     }
                     group[0].pending.push(email);
 
-                    const currentDate = new Date();
+                    const currentDate = Date.now();
 
                     req.db.collection(GROUP_DB).updateOne({
                         id: groupID
@@ -606,7 +606,7 @@ router.post('/group/:groupId/invite', function(req, res) {
                     }
                     group[0].pending.push(email);
 
-                    const currentDate = new Date();
+                    const currentDate = Date.now();
 
                     req.db.collection(GROUP_DB).updateOne({
                         id: groupID
@@ -674,7 +674,7 @@ router.delete('/group/:groupId/invite', function(req, res) {
                     return;
                 }
                 const newPending = group[0].pending.filter(item => item !== email);
-                const currentDate = new Date();
+                const currentDate = Date.now();
 
                 req.db.collection(GROUP_DB).updateOne({
                     id: groupID
