@@ -197,6 +197,7 @@ export default {
         },
         loadUserAndGroups() {
             axios.get('/api/user').then(response => {
+                response.data.groups.sort((a, b) => b.last_modified - a.last_modified);
                 this.user = response.data;
                 if (this.user.groups.length > 0 && !this.canShowGroup(this.$route.params.groupId)) {
                     this.$router.push('/' + this.user.groups[0].id);
