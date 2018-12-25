@@ -8,6 +8,7 @@ const shortid = require('shortid');
 
 const GROCERY_DB = 'groceries';
 const USER_DB = 'users';
+const GROUP_DB = 'groups';
 
 router.get('/group/:groupId/groceries', function(req, res) {
     const groupID = req.params.groupId;
@@ -89,7 +90,16 @@ router.post('/group/:groupId/groceries/add', function(req, res) {
                     utils.handleUnexpectedError(err, res);
                     return;
                 }
-                res.send(newGroceryList.items);
+
+                const currentDate = new Date();
+
+                req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { 'last_modified': currentDate }}, function (err) {
+                    if (err) {
+                        utils.handleUnexpectedError(err, res);
+                        return;
+                    }
+                    res.send(groceryList[0].items);
+                });
             });
         } else {
             groceryList[0].items.push(newItem);
@@ -99,7 +109,16 @@ router.post('/group/:groupId/groceries/add', function(req, res) {
                     utils.handleUnexpectedError(err, res);
                     return;
                 }
-                res.send(groceryList[0].items);
+
+                const currentDate = new Date();
+
+                req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { 'last_modified': currentDate }}, function (err) {
+                    if (err) {
+                        utils.handleUnexpectedError(err, res);
+                        return;
+                    }
+                    res.send(groceryList[0].items);
+                });
             });
         }
     });
@@ -125,7 +144,16 @@ router.delete('/group/:groupId/groceries/:itemId', function(req, res) {
                 utils.handleUnexpectedError(err, res);
                 return;
             }
-            res.send('ok');
+
+            const currentDate = new Date();
+                
+            req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { 'last_modified': currentDate }}, function (err) {
+                if (err) {
+                    utils.handleUnexpectedError(err, res);
+                    return;
+                }
+                res.send('ok');
+            });
         });
     });
 });
