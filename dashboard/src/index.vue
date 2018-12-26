@@ -136,7 +136,9 @@ export default {
             if (response.config.method !== 'get') {
                 /* This is primarily for updating the list of groups to
                  * represent the last_modified */
-                this.loadUserAndGroups();
+                setTimeout(() => {
+                    this.loadUserAndGroups();
+                }, 0);
             }
             return response;
         });
