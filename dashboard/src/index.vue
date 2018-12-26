@@ -133,6 +133,11 @@ export default {
             } else {
                 this.requestsLongerThanTime -= 1;
             }
+            if (response.config.method !== 'get') {
+                /* This is primarily for updating the list of groups to
+                 * represent the last_modified */
+                this.loadUserAndGroups();
+            }
             return response;
         });
     },
