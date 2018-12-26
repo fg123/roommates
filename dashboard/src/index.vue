@@ -133,6 +133,11 @@ export default {
             } else {
                 this.requestsLongerThanTime -= 1;
             }
+            if (response.config.method !== 'get') {
+                /* This is primarily for updating the list of groups to
+                 * represent the last_modified */
+                this.loadUserAndGroups();
+            }
             return response;
         });
     },
@@ -197,6 +202,7 @@ export default {
         },
         loadUserAndGroups() {
             axios.get('/api/user').then(response => {
+                response.data.groups.sort((a, b) => b.last_modified - a.last_modified);
                 this.user = response.data;
                 if (this.user.groups.length > 0 && !this.canShowGroup(this.$route.params.groupId)) {
                     this.$router.push('/' + this.user.groups[0].id);
