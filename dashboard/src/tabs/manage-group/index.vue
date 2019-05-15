@@ -29,6 +29,20 @@
             </mdc-layout-cell>
         </mdc-layout-grid>
 
+        <mdc-title>Change Group Name</mdc-title>
+        <mdc-layout-grid style="padding: 0px;">
+            <mdc-layout-cell desktop=6 tablet=6 phone=4>
+                <mdc-list bordered>
+                    <mdc-list-item style="height: auto; padding-top: 4px; padding-bottom: 4px">
+                        <mdc-textfield v-model="groupName" label="Group Name" fullwidth></mdc-textfield>
+                        <mdc-button slot="end-detail" @click="changeGroupName" raised style="margin-left: 10px;">
+                            <i class="material-icons mdc-button__icon">save</i>update
+                        </mdc-button>
+                    </mdc-list-item>
+                </mdc-list>
+            </mdc-layout-cell>
+        </mdc-layout-grid>
+
         <mdc-title>Leave</mdc-title>
         <mdc-button raised v-on:click="leaveGroupDialogOpen = true">Leave this group</mdc-button>
         <mdc-dialog v-model="leaveGroupDialogOpen"
@@ -53,7 +67,8 @@ export default {
         return {
             inviteEmail: "",
             leaveGroupDialogOpen: false,
-        }
+            groupName: this.group.name,
+        };
     },
     methods: {
         confirmLeave: function () {
@@ -70,6 +85,14 @@ export default {
             const email = this.inviteEmail;
             this.inviteEmail = "";
             axios.post(`/api/group/${this.group.id}/invite`, { email: email.trim() })
+            .then(() => this.reloadGroup())
+            .catch((error) => {
+                this.root.showRequestError(error);
+                this.inviteEmail = email;
+            });
+        },
+        changeGroupName() {
+            axios.post(`/api/group/${this.group.id}/rename`, { name: this.groupName.trim() })
             .then(() => this.reloadGroup())
             .catch((error) => {
                 this.root.showRequestError(error);
