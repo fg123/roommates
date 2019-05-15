@@ -250,6 +250,50 @@ router.post('/groups', function(req, res) {
     });
 });
 
+router.post('/group/:groupId/rename', function(req, res) {
+    if (!req.session.user) {
+        res.status(500).send('Bad access.');
+        return;
+    }
+    const groupID = req.params.groupId;
+
+    req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+        if (err) {
+            utils.handleUnexpectedError(err, res);
+            return;
+        }
+        if (result.length < 1) {
+            res.status(404).send('This group does not exist.');
+            return;
+        }
+        if (utils.invalidInput(req.body.name)){
+            res.status(400).send('Invalid group name entered.');
+            return;
+        }
+
+        if (result[0].name === req.body.name) {
+            res.status(200).send('unchanged');
+            return;
+        }
+
+        req.db.collection(GROUP_DB).updateOne(
+            {
+                id: groupID
+            }, {
+                $set:
+                {
+                    'name': req.body.name
+                }
+            }, function (err) {
+                if (err) {
+                    utils.handleUnexpectedError(err, res);
+                    return;
+                }
+                res.status(200).send('ok');
+            });
+    });
+});
+
 router.post('/group/:groupId/acceptInvite', function(req, res) {
     if (!req.session.user){
         res.status(500).send('Bad access.');
@@ -703,7 +747,7 @@ router.all('/group/:groupId/*', function(req, res, next) {
         res.status(500).send('Bad access.');
         return;
     }
-    
+
     const currentUserID = req.session.user.id;
 
     req.db.collection(GROUP_DB).find({ id: groupID, members: { $in: [currentUserID] }}).toArray(function(err, group) {
