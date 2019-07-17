@@ -5,11 +5,19 @@
         </mdc-button>
         <mdc-title>
             {{ groupName }}
-            <mdc-button raised style="float: right"
-                @click="createTransactionDialogOpen = true"
-                class="hide-on-mobile">
-                New Transaction
-            </mdc-button>
+            <div style="float: right">
+                <mdc-button raised
+                    @click="createTransactionDialogOpen = true"
+                    class="hide-on-mobile">
+                    New Transaction
+                </mdc-button>
+                <mdc-button raised
+                    style="background: #911313"
+                    v-if="canDeleteGroup"
+                    @click="deleteExpenseGroupConfirmDialogOpen = true">
+                    Delete Group
+                </mdc-button>
+            </div>
         </mdc-title>
         <mdc-fab
             fixed
@@ -50,60 +58,65 @@
         </mdc-dialog>
         <mdc-textfield outline label="Filter" style="width: 100%" v-model="filterField" />
         <div style="width: 100%">
-        <mdc-data-table>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Expense</th>
-                        <th>Paid By</th>
-                        <th>Owed By</th>
-                        <th class="right">Cost</th>
-                        <th style="width: 150px">
-                            <!--Invalidated Column-->
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="transactions.length === 0">
-                        <td colspan="5">No Transactions Found</td>
-                    </tr>
-                    <template v-for="transaction in filterTransactions(transactions)">
-                        <tr :key="transaction.id"
-                            :class="{ disabled: transaction.isInvalidated }">
-                            <td>{{ toDateString(transaction.created) }}</td>
-                            <td>{{ transaction.description }}</td>
-                            <td>
-                                {{ getMemberName(transaction.owee) }}
-                            </td>
-                            <td v-html="getOwersString(transaction)"></td>
-                            <td class="right"
-                                :class="{ strikeThrough: transaction.isInvalidated }">
-                                ${{ transaction.value }}
-                            </td>
-                            <td class="right">
-                                <mdc-button
-                                    @click="openInvalidateConfirmDialog(transaction.id)"
-                                    outlined
-                                    :disabled="transaction.isInvalidated"
-                                    style="text-decoration: none!important">
-                                    {{ transaction.isInvalidated ? "Invalidated" : "Invalidate" }}
-                                </mdc-button>
-                            </td>
+            <mdc-data-table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Expense</th>
+                            <th>Paid By</th>
+                            <th>Owed By</th>
+                            <th class="right">Cost</th>
+                            <th style="width: 150px">
+                                <!--Invalidated Column-->
+                            </th>
                         </tr>
-                        <!-- Show Invalidated Reason -->
-                        <tr v-if="transaction.isInvalidated" :key="transaction.id + 'invalidated'" style="color: #999">
-                            <td colspan="6">
-                                This transaction was invalidated
-                                    on {{ toDateString(transaction.invalidatedTime) }}
-                                    by {{ getMemberName(transaction.invalidatedBy) }}:
-                                    "{{ transaction.invalidatedReason }}".
-                            </td>
+                    </thead>
+                    <tbody>
+                        <tr v-if="transactions.length === 0">
+                            <td colspan="5">No Transactions Found</td>
                         </tr>
-                    </template>
-                </tbody>
-            </table>
-        </mdc-data-table>
+                        <template v-for="transaction in filterTransactions(transactions)">
+                            <tr :key="transaction.id"
+                                :class="{ disabled: transaction.isInvalidated }">
+                                <td>{{ toDateString(transaction.created) }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td>
+                                    {{ getMemberName(transaction.owee) }}
+                                </td>
+                                <td v-html="getOwersString(transaction)"></td>
+                                <td class="right"
+                                    :class="{ strikeThrough: transaction.isInvalidated }">
+                                    ${{ transaction.value }}
+                                </td>
+                                <td class="right">
+                                    <mdc-button
+                                        @click="openInvalidateConfirmDialog(transaction.id)"
+                                        outlined
+                                        :disabled="transaction.isInvalidated"
+                                        style="text-decoration: none!important">
+                                        {{ transaction.isInvalidated ? "Invalidated" : "Invalidate" }}
+                                    </mdc-button>
+                                </td>
+                            </tr>
+                            <!-- Show Invalidated Reason -->
+                            <tr v-if="transaction.isInvalidated" :key="transaction.id + 'invalidated'" style="color: #999">
+                                <td colspan="6">
+                                    This transaction was invalidated
+                                        on {{ toDateString(transaction.invalidatedTime) }}
+                                        by {{ getMemberName(transaction.invalidatedBy) }}:
+                                        "{{ transaction.invalidatedReason }}".
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </mdc-data-table>
+            <div style="margin-top: 10px; text-align: center;">
+                <mdc-caption>
+                    You can only delete the expense group when all transactions are invalidated.
+                </mdc-caption>
+            </div>
         </div>
         <mdc-dialog v-model="invalidateConfirmDialogOpen"
                     title="Invalidate Transaction?"
@@ -116,6 +129,11 @@
                 v-model="invalidateConfirmReason"
                 label="Reason for Invalidating"
                 fullwidth required />
+        </mdc-dialog>
+        <mdc-dialog v-model="deleteExpenseGroupConfirmDialogOpen"
+            title="Are you sure you want to delete this expense group?" accept="Confirm" cancel="Cancel"
+            @accept="deleteExpenseGroup" @cancel="deleteExpenseGroupConfirmDialogOpen = false">
+            Deleting this expense group is irreversible!
         </mdc-dialog>
     </div>
 </template>
@@ -168,6 +186,8 @@ export default {
             createTransactionCostTextField: "",
             createTransactionDialogOpen: false,
 
+            deleteExpenseGroupConfirmDialogOpen: false,
+
             filterField: "",
 
             checkedIds: [],
@@ -196,6 +216,11 @@ export default {
                 }
                 return transactions;
             }
+        }
+    },
+    computed: {
+        canDeleteGroup() {
+            return this.transactions.every(t => t.isInvalidated);
         }
     },
     components: {
@@ -238,6 +263,14 @@ export default {
                 `/expenses/${this.$route.params.expenseGroupId}`).then(response => {
                 this.groupName = response.data.name;
                 this.transactions = response.data.transactions;
+            }).catch(error => {
+                this.root.showRequestError(error);
+            });
+        },
+        deleteExpenseGroup() {
+            axios.delete(`/api/group/${this.$route.params.groupId}` +
+                `/expenses/${this.$route.params.expenseGroupId}`).then(response => {
+                this.goBack();
             }).catch(error => {
                 this.root.showRequestError(error);
             });

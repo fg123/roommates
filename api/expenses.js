@@ -70,7 +70,7 @@ router.post('/group/:groupId/expenses/add', function(req, res) {
                 }
 
                 const currentDate = Date.now();
-                
+
                 req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
                     if (err) {
                         utils.handleUnexpectedError(err, res);
@@ -96,6 +96,40 @@ router.get('/group/:groupId/expenses/:expenseGroupId', function(req, res) {
         } else {
             res.send(expenseGroup[0]);
         }
+    });
+});
+
+router.delete('/group/:groupId/expenses/:expenseGroupId', function(req, res) {
+    const expenseGroupID = req.params.expenseGroupId;
+    const groupID = req.params.groupId;
+    req.db.collection(EXPENSE_DB).find({ id: expenseGroupID }).toArray(function(err, expenseGroup) {
+        if (err) {
+            utils.handleUnexpectedError(err, res);
+            return;
+        }
+        if (expenseGroup.length < 1) {
+            res.status(404).send('This expense group does not exist.');
+            return;
+        }
+        if (!expenseGroup[0].transactions.every(t => t.isInvalidated)) {
+            res.status(400).send('This expense group still has non invalidated transactions!');
+            return;
+        }
+        req.db.collection(EXPENSE_DB).remove({ id: expenseGroupID }, function (err) {
+            if (err) {
+                utils.handleUnexpectedError(err, res);
+                return;
+            }
+
+            const currentDate = Date.now();
+            req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
+                if (err) {
+                    utils.handleUnexpectedError(err, res);
+                    return;
+                }
+                res.send('ok');
+            });
+        });
     });
 });
 
@@ -222,7 +256,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
                 }
 
                 const currentDate = Date.now();
-                
+
                 req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
                     if (err) {
                         utils.handleUnexpectedError(err, res);
@@ -297,7 +331,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transaction/:transactionId
                 }
 
                 const currentDate = Date.now();
-                
+
                 req.db.collection(GROUP_DB).updateOne({ id: groupID }, { $set: { last_modified: currentDate }}, function (err) {
                     if (err) {
                         utils.handleUnexpectedError(err, res);
