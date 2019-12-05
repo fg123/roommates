@@ -40,19 +40,28 @@
                 leading-icon="attach_money"
                 @blur="formatCost"
                 @focus="selectCostTextField"
+                @keyup="costChanged"
                 type="number"
                 step="0.01"
                 ref="costBox" />
-            <mdc-text>Select group members who owe this amount
-                    (the amount will be split evenly):</mdc-text>
+            <mdc-text>Select group members who owe this amount:</mdc-text>
             <mdc-button outlined dense @click="selectAll">Select All</mdc-button>
             <mdc-button outlined dense @click="deselectAll">Deselect All</mdc-button>
+            <mdc-button outlined dense @click="costChanged">Split Evenly</mdc-button>
             <div style="margin-top: 16px">
                 <div v-for="roommate in roommate_group.members" :key="roommate.id">
                     <mdc-checkbox
-                        :label="roommate.name + ' (' + roommate.email + ')'"
+                        :label="roommate.name + ' (' + roommate.email + ') $' + ((createTransactionOwersDict[roommate.id] || 0) / 100).toFixed(2)"
                         :value="roommate.id"
-                        v-model="checkedIds" />
+                        v-model="checkedIds"
+                        @change="costChanged" />
+                    
+                    <div class="sliderHolder">
+                        <input ref="sliders" type="range" :min="0" :max="Number(createTransactionCostTextField) * 100"
+                            v-model="createTransactionOwersDict[roommate.id]"
+                            @input="function (id) { return event => updateSlider(id, event.srcElement.value); }(roommate.id)"
+                            id="myRange" v-if="checkedIds.includes(roommate.id)" />
+                    </div>
                 </div>
             </div>
         </mdc-dialog>
@@ -147,25 +156,6 @@
 }
 </style>
 
-<style>
-
-.costTextField input {
-    /* Push number upwards to line up with dollar icon */
-    padding-bottom: 15px!important;
-    font-weight: 500;
-
-
-    /* Hide spinners for number inputs. */
-    -moz-appearance:textfield;
-}
-
-.costTextField input::-webkit-outer-spin-button,
-.costTextField input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-</style>
-
 <script>
 import axios from 'axios';
 import date from '../../date';
@@ -183,8 +173,13 @@ export default {
             groupName: "",
 
             createTransactionExpenseTextField: "",
-            createTransactionCostTextField: "",
+            createTransactionCostTextField: "0.00",
             createTransactionDialogOpen: false,
+            createTransactionOwersDict: ((group) => {
+                const a = {};
+                group.members.forEach(r => a[r.id] = 0);
+                return a;
+            })(this.roommate_group),
 
             deleteExpenseGroupConfirmDialogOpen: false,
 
@@ -195,6 +190,12 @@ export default {
             pendingInvalidateId: undefined,
             invalidateConfirmDialogOpen: false,
             invalidateConfirmReason: "",
+
+            sliderTouchTimestamp: ((group) => {
+                const a = {};
+                group.members.forEach(r => a[r.id] = 0);
+                return a;
+            })(this.roommate_group),
 
             filterTransactions(transactions) {
                 if (this.filterField) {
@@ -232,6 +233,43 @@ export default {
     },
     methods: {
         toDateString: date.toDateString,
+        updateSlider(id, value) {
+            // createTransactionOwersDict is in CENTS
+            this.createTransactionOwersDict[id] = Math.round(value);
+            this.sliderTouchTimestamp[id] = Date.now();
+            const oldestId = this.checkedIds.reduce(
+                (key, v) => this.sliderTouchTimestamp[v] < this.sliderTouchTimestamp[key] ? v : key);
+
+            let total = Number(this.createTransactionCostTextField) * 100;
+            this.checkedIds.forEach(key => {
+                if (key !== oldestId) {
+                    total -= this.createTransactionOwersDict[key];
+                }
+            });
+            this.createTransactionOwersDict[oldestId] = total;
+        },
+        costChanged() {
+            const total = Number(this.createTransactionCostTextField.trim()) * 100;
+            const baseEach = Math.floor(total / this.checkedIds.length);
+            let centsLeftOver = total - (baseEach * this.checkedIds.length);
+            
+            Object.keys(this.createTransactionOwersDict).forEach(key => {
+                this.createTransactionOwersDict[key] = 0;
+            });
+            
+            this.checkedIds.forEach(
+                (key) => this.createTransactionOwersDict[key] = baseEach);
+            
+            const random = this.checkedIds.slice().sort(() => Math.random() - 0.5);
+            while (centsLeftOver > 0) {
+                this.createTransactionOwersDict[random.shift()] += 1;
+                centsLeftOver -= 1;
+            }
+            
+            // this.$refs.sliders.forEach(slider => {
+            //     slider.layout();
+            // });
+        },
         goBack() {
             this.$router.push({ name: 'Expenses-list' });
         },
@@ -326,10 +364,23 @@ export default {
             accept();
         },
         createTransaction() {
+            const owerDict = {};
+            owerDict[this.root.user.id] = -Number(this.createTransactionCostTextField.trim());
+            console.log(JSON.parse(JSON.stringify(this.createTransactionOwersDict)));
+            Object.keys(this.createTransactionOwersDict).forEach(id => {
+                const val = this.createTransactionOwersDict[id];
+                if (val) {
+                    if (owerDict[id] === undefined) {
+                        owerDict[id] = 0;
+                    }
+                    owerDict[id] += (val / 100);
+                }
+            });
+            console.log(owerDict);
             axios.post(`/api/group/${this.$route.params.groupId}/expenses/${this.$route.params.expenseGroupId}/transactions/add`,
             {
                 owee: this.root.user.id,
-                owers: this.checkedIds,
+                owers: owerDict,
                 value: this.createTransactionCostTextField.trim(),
                 description: this.createTransactionExpenseTextField.trim()
             }).then(response => {
@@ -365,3 +416,67 @@ export default {
     }
 }
 </script>
+
+<style>
+.costTextField input {
+    /* Push number upwards to line up with dollar icon */
+    padding-bottom: 15px!important;
+    font-weight: 500;
+
+
+    /* Hide spinners for number inputs. */
+    -moz-appearance:textfield;
+}
+
+.costTextField input::-webkit-outer-spin-button,
+.costTextField input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.sliderHolder {
+    width: calc(100% - 24px);
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    position: relative;
+    font-size: 16px;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* Input */
+.sliderHolder > input {
+    -webkit-appearance: none;
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 36px;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.sliderHolder > input:focus {
+    outline: none;
+}
+
+.sliderHolder > input::-webkit-slider-runnable-track {
+    margin: 17px 0;
+    border-radius: 1px;
+    width: 100%;
+    height: 2px;
+    background-color: rgba(var(--pure-material-primary-rgb, 65, 184, 131), 0.24);
+}
+
+.sliderHolder > input::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    border-radius: 50%;
+    height: 2px;
+    width: 2px;
+    background-color: rgb(var(--pure-material-primary-rgb, 65, 184, 131));
+    transform: scale(6, 6);
+    transition: box-shadow 0.2s;
+}
+
+</style>

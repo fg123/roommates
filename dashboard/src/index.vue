@@ -141,6 +141,15 @@ export default {
                 }, 0);
             }
             return response;
+        }, (error) => {
+            const pendingTimeout = this.pendingRequests[error.response.config.requestTime];
+            if (pendingTimeout) {
+                // Less than 50ms, not cleared
+                clearTimeout(pendingTimeout);
+            } else {
+                this.requestsLongerThanTime -= 1;
+            }
+            return error;
         });
     },
     routes: new Routes([{
@@ -219,6 +228,7 @@ export default {
             }
         },
         showRequestError(error) {
+            console.log(error);
             const response = error.response;
             this.showError(`Error (${response.status}): ${response.data}`);
         },

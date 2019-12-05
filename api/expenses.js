@@ -152,7 +152,12 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
     const groupID = req.params.groupId;
     const expenseGroupID = req.params.expenseGroupId;
     const owee = req.body.owee;
-    let owers = req.body.owers; // takes in an array of userIDs
+    /**
+     * If the owers is a list of userIDs, the value will be split evenly.
+     * Alternatively, owers can be a map of id: price if the frontend wants
+     *   to provide it themselves.
+     */
+    let owers = req.body.owers;
     const value = req.body.value;
     const description = req.body.description;
 
@@ -160,7 +165,7 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
         res.status(400).send('Invalid owee was entered.');
         return;
     }
-    if (owers.length == 0) {
+    if (Array.isArray(owers) && owers.length == 0) {
         res.status(400).send('No owers were selected.');
         return;
     }
@@ -186,34 +191,48 @@ router.post('/group/:groupId/expenses/:expenseGroupId/transactions/add', functio
             res.status(404).send('This expense group does not exist.');
             return;
         }
-        const totalOwers = owers.length;
-        const currentOwing = expenseGroup[0].owing;
-
+        
         /* This is a map of owerId: owed so that random cent splitting can be
          * kept track of */
         let owingsDelta = {};
+        const currentOwing = expenseGroup[0].owing;
 
-        /* Reset owers to 0, owee can be an ower too! */
-        owers.forEach(ower => owingsDelta[ower] = 0);
+        if (Array.isArray(owers)) {
+            const totalOwers = owers.length;
 
-        /* Value is a string in dollars and stored as cents in database */
-        owingsDelta[owee] = -(Number(value) * 100);
+            /* Reset owers to 0, owee can be an ower too! */
+            owers.forEach(ower => owingsDelta[ower] = 0);
 
-        /* Split amount amongst rest */
-        const totalCents = Math.floor(Number(value) * 100);
-        const baseAmountCents = Math.floor(totalCents / totalOwers);
+            /* Value is a string in dollars and stored as cents in database */
+            owingsDelta[owee] = -(Number(value) * 100);
 
-        let centsLeft = totalCents - (baseAmountCents * totalOwers);
+            /* Split amount amongst rest */
+            const totalCents = Math.floor(Number(value) * 100);
+            const baseAmountCents = Math.floor(totalCents / totalOwers);
 
-        owers.forEach(ower => owingsDelta[ower] += baseAmountCents);
+            let centsLeft = totalCents - (baseAmountCents * totalOwers);
 
-        /* CentsLeft < randomOwers.length guaranteed */
-        let randomOwers = owers.slice(0);
-        while (centsLeft > 0) {
-            const index = Math.floor(Math.random() * randomOwers.length);
-            owingsDelta[randomOwers[index]]++;
-            randomOwers.splice(index, 1);
-            centsLeft--;
+            owers.forEach(ower => owingsDelta[ower] += baseAmountCents);
+
+            /* CentsLeft < randomOwers.length guaranteed */
+            let randomOwers = owers.slice(0);
+            while (centsLeft > 0) {
+                const index = Math.floor(Math.random() * randomOwers.length);
+                owingsDelta[randomOwers[index]]++;
+                randomOwers.splice(index, 1);
+                centsLeft--;
+            }
+        }
+        else {
+            /* Check amounts add up */
+            Object.keys(owers).forEach(key => {
+                owingsDelta[key] = Math.round(Number(owers[key]) * 100);
+            });
+            const total = Object.values(owingsDelta).map(v => Number(v)).reduce((a, b) => a + b, 0);
+            if (total !== 0) {
+                res.status(400).send('Owers dictionary does not equate to 0!');
+                return;
+            }
         }
 
         /* Apply the delta map to the cached owings */
