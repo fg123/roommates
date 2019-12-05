@@ -23,7 +23,7 @@
     "dependencies": {
         "@babel/core": "^7.1.0",
         "@material/theme": "^0.39.1",
-        "axios": "^0.18.0",
+        "axios": "^0.18.1",
         "babel-loader": "^8.0.2",
         "body-parser": "^1.18.3",
         "chart.js": "^2.7.2",
@@ -38,7 +38,7 @@
         "material-components-web": "^0.39.3",
         "mini-css-extract-plugin": "^0.4.3",
         "moment": "^2.22.2",
-        "mongodb": "^3.1.6",
+        "mongodb": "^3.3.5",
         "node-sass": "^4.9.3",
         "optimize-css-assets-webpack-plugin": "^5.0.1",
         "postcss-loader": "^3.0.0",
