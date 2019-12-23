@@ -55,7 +55,7 @@
                         :value="roommate.id"
                         v-model="checkedIds"
                         @change="costChanged" />
-                    
+
                     <div class="sliderHolder">
                         <input ref="sliders" type="range" :min="0" :max="Number(createTransactionCostTextField) * 100"
                             v-model="createTransactionOwersDict[roommate.id]"
@@ -237,35 +237,47 @@ export default {
             // createTransactionOwersDict is in CENTS
             this.createTransactionOwersDict[id] = Math.round(value);
             this.sliderTouchTimestamp[id] = Date.now();
-            const oldestId = this.checkedIds.reduce(
-                (key, v) => this.sliderTouchTimestamp[v] < this.sliderTouchTimestamp[key] ? v : key);
+            let idsFromOldest = this.checkedIds.slice(0).sort(
+                (a, b) =>  this.sliderTouchTimestamp[a] - this.sliderTouchTimestamp[b]
+            );
 
-            let total = Number(this.createTransactionCostTextField) * 100;
+            let total = 0;
             this.checkedIds.forEach(key => {
-                if (key !== oldestId) {
-                    total -= this.createTransactionOwersDict[key];
-                }
+                total += this.createTransactionOwersDict[key];
             });
-            this.createTransactionOwersDict[oldestId] = total;
+            total -= Number(this.createTransactionCostTextField) * 100;
+
+            // Total is how much "over" the actual amount we are,
+            while (total !== 0) {
+                if (this.createTransactionOwersDict[idsFromOldest[0]] < total) {
+                    total -= this.createTransactionOwersDict[idsFromOldest[0]];
+                    this.createTransactionOwersDict[idsFromOldest[0]] = 0;
+                    idsFromOldest.shift();
+                }
+                else {
+                    this.createTransactionOwersDict[idsFromOldest[0]] -= total;
+                    total = 0;
+                }
+            }
         },
         costChanged() {
-            const total = Number(this.createTransactionCostTextField.trim()) * 100;
+            const total = Math.floor(Number(this.createTransactionCostTextField.trim()) * 100);
             const baseEach = Math.floor(total / this.checkedIds.length);
             let centsLeftOver = total - (baseEach * this.checkedIds.length);
-            
+
             Object.keys(this.createTransactionOwersDict).forEach(key => {
                 this.createTransactionOwersDict[key] = 0;
             });
-            
+
             this.checkedIds.forEach(
                 (key) => this.createTransactionOwersDict[key] = baseEach);
-            
+
             const random = this.checkedIds.slice().sort(() => Math.random() - 0.5);
             while (centsLeftOver > 0) {
                 this.createTransactionOwersDict[random.shift()] += 1;
                 centsLeftOver -= 1;
             }
-            
+
             // this.$refs.sliders.forEach(slider => {
             //     slider.layout();
             // });
@@ -479,4 +491,8 @@ export default {
     transition: box-shadow 0.2s;
 }
 
+div.mdc-dialog__surface {
+    overflow: auto;
+    max-height: 100%;
+}
 </style>
