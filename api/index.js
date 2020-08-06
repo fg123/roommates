@@ -12,6 +12,7 @@ const shortid = require('shortid');
 
 const USER_DB = 'users';
 const GROUP_DB = 'groups';
+const EXPENSE_DB = 'expenses';
 
 function createNewUser(name, email, picture) {
     return {
@@ -492,74 +493,116 @@ router.post('/group/:groupId/leave', function(req, res) {
 
     const currentUserID = req.session.user.id;
 
-    req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
+    req.db.collection(GROUP_DB).find({ members: { $in: [currentUserID] }}).toArray(function(err, allGroups) {
         if (err) {
+            console.log("1........")
             utils.handleUnexpectedError(err, res);
             return;
         }
 
-        if (result.length < 1) {
-            res.status(404).send('This group does not exist.');
+        if (allGroups.length < 1) {
+            console.log("2........")
+            res.status(404).send('The user does not belong to any groups.');
             return;
         }
 
-        result = result[0];
-        const groupIndex = result.members.indexOf(currentUserID);
+        req.db.collection(EXPENSE_DB).find().toArray(function(err, groups) {
+            if (err) {
+                console.log("3........")
+                utils.handleUnexpectedError(err, res);
+                return;
+            }
+    
+            if (groups.length < 1) {
+                console.log("4........")
+                res.status(404).send('There does not exist any expense groups.');
+                return;
+            }
 
-        if (groupIndex < 0) {
-            res.status(404).send('This group does not exist.');
-            return;
-        }
+            const Exception = {};
+            
+            try {
+                groups.forEach(expenseGroup => {
+                    if (expenseGroup.owing.hasOwnProperty(currentUserID) && expenseGroup.owing[currentUserID] < 0) {
+                        res.status(400).send('Cannot leave group; You currently have outstanding transactions in the expense group \''+
+                        expenseGroup.name+"\' that make your balance negative.")
+                        throw Exception
+                    }
+                });
+            } catch (e) {
+                return
+            }
 
-        const newMembers = result.members.filter(item => item !== currentUserID);
-
-        const currentDate = Date.now();
-
-        req.db.collection(GROUP_DB).updateOne(
-            {
-                id: groupID
-            }, {
-                $set:
-                {
-                    'last_modifed': currentDate,
-                    'members': newMembers
-                }
-            }, function(err) {
+            req.db.collection(GROUP_DB).find({ id: groupID }).toArray(function(err, result) {
                 if (err) {
                     utils.handleUnexpectedError(err, res);
                     return;
                 }
-                req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
-                    if (err) {
-                        utils.handleUnexpectedError(err, res);
-                        return;
-                    }
-                    user = user[0];
-                    const userIndex = user.group_ids.indexOf(groupID);
 
-                    if (userIndex < 0) {
-                        res.status(404).send('The group you are trying to leaving does not exist');
-                        return;
-                    }
+                if (result.length < 1) {
+                    res.status(404).send('This group does not exist.');
+                    return;
+                }
 
-                    const newGroupIDs = user.group_ids.filter(item => item !== groupID);
-                    req.db.collection(USER_DB).updateOne(
+                result = result[0];
+                const groupIndex = result.members.indexOf(currentUserID);
+
+                if (groupIndex < 0) {
+                    res.status(404).send('This group does not exist.');
+                    return;
+                }
+
+                const newMembers = result.members.filter(item => item !== currentUserID);
+
+                const currentDate = Date.now();
+
+                req.db.collection(GROUP_DB).updateOne(
+                    {
+                        id: groupID
+                    }, {
+                        $set:
                         {
-                            id: currentUserID
-                        }, {
-                            $set:
-                        {
-                            'group_ids': newGroupIDs
+                            'last_modifed': currentDate,
+                            'members': newMembers
                         }
-                        }, function(err) {
-                            if (err){
+                    }, function(err) {
+                        if (err) {
+                            utils.handleUnexpectedError(err, res);
+                            return;
+                        }
+                        req.db.collection(USER_DB).find({ id: currentUserID }).toArray(function(err, user) {
+                            if (err) {
                                 utils.handleUnexpectedError(err, res);
                                 return;
                             }
-                            res.status(200).send('ok');
+                            user = user[0];
+                            const userIndex = user.group_ids.indexOf(groupID);
+
+                            if (userIndex < 0) {
+                                res.status(404).send('The group you are trying to leaving does not exist');
+                                return;
+                            }
+
+                            const newGroupIDs = user.group_ids.filter(item => item !== groupID);
+                            req.db.collection(USER_DB).updateOne(
+                                {
+                                    id: currentUserID
+                                }, {
+                                    $set:
+                                {
+                                    'group_ids': newGroupIDs
+                                }
+                                }, function(err) {
+                                    if (err){
+                                        utils.handleUnexpectedError(err, res);
+                                        return;
+                                    }
+                                    res.status(200).send('ok');
+                                });
                         });
-                });
+                    });
             });
+        });
     });
 });
 
