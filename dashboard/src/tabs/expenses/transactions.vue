@@ -261,7 +261,7 @@ export default {
             }
         },
         costChanged() {
-            const total = Math.floor(Number(this.createTransactionCostTextField.trim()) * 100);
+            const total = Math.round(Number(this.createTransactionCostTextField.trim()) * 100);
             const baseEach = Math.floor(total / this.checkedIds.length);
             let centsLeftOver = total - (baseEach * this.checkedIds.length);
 
